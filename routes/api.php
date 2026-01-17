@@ -1,16 +1,16 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Api\UnitController;
 
 Route::prefix('v1')->group(function () {
-
     Route::post('/login', [AuthController::class, 'login']);
 
     Route::middleware('auth:sanctum')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/logout', action: [AuthController::class, 'logout']);
+        Route::apiResource('units', UnitController::class);
+        Route::post('units/{id}/restore', [UnitController::class, 'restore']);
     });
 });
 

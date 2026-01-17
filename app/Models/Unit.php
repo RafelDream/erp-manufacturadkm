@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Unit extends Model
 {
-    protected $fillable = [
+    use SoftDeletes;
+        protected $fillable = [
         'kode',
         'name',
         'description',

@@ -23,7 +23,7 @@ class RolePermissionSeeder extends Seeder
             'view-inventory', 'create-production', 'update-stock', 'qc-check',
             'view-sales', 'create-sales',
             'create-delivery', 'update-delivery',
-            'view-report',   
+            'view-report',   'manage-units',
         ];
 
         foreach ($permissions as $permission) {
