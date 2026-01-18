@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\ProductController;
 
 Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -11,6 +12,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', action: [AuthController::class, 'logout']);
         Route::apiResource('units', UnitController::class);
         Route::post('units/{id}/restore', [UnitController::class, 'restore']);
+        Route::apiResource('products', ProductController::class);
+        Route::post('products/{id}/restore', [ProductController::class, 'restore']);
     });
 });
 

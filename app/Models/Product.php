@@ -13,9 +13,10 @@ class Product extends Model
         'kode',
         'name',
         'unit_id',
-        'type',
+        'tipe',
         'volume',
         'harga',
+        'is_returnable',
         'is_active',
     ];
 

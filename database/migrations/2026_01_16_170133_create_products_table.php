@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('kode')->unique();
             $table->string('name');
             $table->foreignId('unit_id')->constrained('units');
-            $table->enum('tipe', ['raw', 'finished']);
+            $table->string('tipe');
             $table->decimal('volume', 8, 2)->nullable(); // liter/ml
             $table->boolean('is_returnable')->default(false); // galon
             $table->decimal('harga', 15, 2)->default(0);
