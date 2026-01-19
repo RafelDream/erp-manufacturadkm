@@ -27,7 +27,7 @@ class ProductController extends Controller
             'name' => 'required|string',
             'unit_id' => 'required|exists:units,id',
             'tipe' => 'required|string',
-            'volume' => 'nullable|string',
+            'volume' => 'required|numeric',
             'harga' => 'required|numeric|min:0',
             'is_returnable' => 'boolean',
         ]);
@@ -50,12 +50,12 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'kode' => 'required|unique:products,kode,' . $product->id,
-            'name' => 'required|string',
-            'unit_id' => 'required|exists:units,id',
-            'tipe' => 'required|string',
-            'volume' => 'nullable|string',
-            'harga' => 'required|numeric|min:0',
+            'kode' => 'nullable|unique:products,kode,' . $product->id,
+            'name' => 'nullable|string',
+            'unit_id' => 'nullable|exists:units,id',
+            'tipe' => 'nullable|string',
+            'volume' => 'nullable|numeric',
+            'harga' => 'nullable|numeric|min:0',
             'is_returnable' => 'boolean',
             'is_active' => 'boolean',
         ]);

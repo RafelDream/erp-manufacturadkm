@@ -50,8 +50,8 @@ class UnitController extends Controller
     public function update(Request $request, Unit $unit)
     {
         $validated = $request->validate([
-            'kode' => 'required|string|max:20|unique:units,kode,' . $unit->id,
-            'name' => 'required|string|max:100',
+            'kode' => 'nullable|string|max:20|unique:units,kode,' . $unit->id,
+            'name' => 'nullable|string|max:100',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
         ]);

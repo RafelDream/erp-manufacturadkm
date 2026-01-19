@@ -30,11 +30,13 @@ class UserController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'role'     => 'required|in:' . implode(',', $rolesAllowed),
+            'role'     => 'required|array',
+            'role.*'   => 'string|in:' . implode(',', $rolesAllowed),
         ],[
-            'role.required' => 'Role wajib diisi.',
-            'role.in'       => 'Role tidak valid. Pilihan tersedia: ' . implode(', ', $rolesAllowed),
-        ]);
+        'role.required' => 'Role wajib diisi.',
+        'role.array'    => 'Format role harus berupa list/array.',
+        'role.*.in'     => 'Salah satu role tidak valid. Pilihan: ' . implode(', ', $rolesAllowed),
+    ]);
 
         $user = User::create([
             'name' => $data['name'],
