@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\WarehouseController;
 
 Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -17,6 +19,12 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('products', ProductController::class);
         Route::post('products/{id}/restore', [ProductController::class, 'restore']);
+
+        Route::apiResource('suppliers', SupplierController::class);
+        Route::post('suppliers/{id}/restore', [SupplierController::class, 'restore']);
+
+        Route::apiResource('warehouses', WarehouseController::class);
+        Route::post('warehouses/{id}/restore', [WarehouseController::class, 'restore']);
     });
 });
 

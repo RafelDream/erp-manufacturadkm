@@ -18,6 +18,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $rolesAllowed = [
+            "super-admin",
             'admin-operasional',
             'admin-penjualan',
             'staff-gudang',
@@ -26,21 +27,20 @@ class UserController extends Controller
             'kurir',
             'owner'
     ];
-        $data = $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email|unique:users',
+
+    $data = $request->validate([
+            'name'     => 'required|string',
+            'email'    => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'role'     => 'required|array',
-            'role.*'   => 'string|in:' . implode(',', $rolesAllowed),
-        ],[
-        'role.required' => 'Role wajib diisi.',
-        'role.array'    => 'Format role harus berupa list/array.',
-        'role.*.in'     => 'Salah satu role tidak valid. Pilihan: ' . implode(', ', $rolesAllowed),
-    ]);
+            'role'     => 'required|string|in:' . implode(',', $rolesAllowed), 
+        ], [
+            'role.required' => 'Role wajib diisi.',
+            'role.in'       => 'Role tidak valid. Pilihan: ' . implode(', ', $rolesAllowed),
+        ]);
 
         $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
+            'name'     => $data['name'],
+            'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
 
@@ -48,7 +48,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User berhasil dibuat',
-            'user' => $user->load('roles')
+            'user'    => $user->load('roles')
         ], 201);
     }
 

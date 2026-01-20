@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
+use App\Models\Stock;
 
 class Warehouse extends Model
 {
@@ -17,6 +17,11 @@ class Warehouse extends Model
         'deskripsi',
         'is_active',
     ];
+
+        public function stocks()
+    {
+        return $this->hasMany(Stock::class);
+    }
 
     protected $casts = [
         'is_active' => 'boolean',
