@@ -43,7 +43,7 @@ class StockRequestController extends Controller
                 'request_number' => 'SR-' . now()->format('YmdHis'),
                 'request_date' => $request->request_date,
                 'request_by' => Auth::id(),
-                'status' => 'submitted',
+                'status' => 'draft',
                 'notes' => $request->notes,
             ]);
 

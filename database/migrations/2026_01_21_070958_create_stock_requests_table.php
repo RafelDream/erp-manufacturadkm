@@ -18,9 +18,9 @@ return new class extends Migration
             $table->foreignId('request_by')
                   ->constrained('users')
                   ->cascadeOnDelete();
-            $table->enum('status', [
-                'draft', 'submitted', 'approved',
-                'rejected', 'completed'])->default('submitted');
+            $table->enum('status', ['draft', 'approved', 'rejected'])->default('draft');
+            $table->foreignId('approved_by')->nullable()->constrained('users');
+            $table->timestamp('approved_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();

@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\StockRequestController;
+use App\Http\Controllers\Api\StockRequestApprovalController;
+use App\Http\Controllers\Api\StockOutController;
+use App\Http\Controllers\Api\StockInitialController;
 
 Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -28,7 +31,13 @@ Route::prefix('v1')->group(function () {
         Route::post('warehouses/{id}/restore', [WarehouseController::class, 'restore']);
 
         Route::apiResource('stock-requests', StockRequestController::class);
+        Route::post('/stock-requests/{id}/approve', [StockRequestApprovalController::class, 'approve']);
+        Route::post('/stock-requests/{id}/reject', [StockRequestApprovalController::class, 'reject']);
         Route::post('/stock-requests/{id}/restore', [StockRequestController::class, 'restore']);
+        Route::post('/stock-outs', [StockOutController::class, 'store']);
+        Route::post('/initial-stocks', [StockInitialController::class, 'store']);
+
+
     });
 });
 
