@@ -30,4 +30,9 @@ class Product extends Model
     {
         return $this->belongsTo(Unit::class);
     }
+
+    public function stockRequestItems()
+    {
+        return $this->hasMany(StockRequestItem::class);
+    }    
 }
