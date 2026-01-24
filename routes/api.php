@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\StockAdjustmentController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\WarehouseController;
@@ -34,10 +35,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/stock-requests/{id}/approve', [StockRequestApprovalController::class, 'approve']);
         Route::post('/stock-requests/{id}/reject', [StockRequestApprovalController::class, 'reject']);
         Route::post('/stock-requests/{id}/restore', [StockRequestController::class, 'restore']);
+        //Stock Out
         Route::post('/stock-outs', [StockOutController::class, 'store']);
+        //Initial Stock
         Route::post('/initial-stocks', [StockInitialController::class, 'store']);
-
-
+        //Stock Adjustment
+        Route::apiResource('stock-adjustments', StockAdjustmentController::class);
+        Route::post('/stock-adjustments/{id}/post', [StockAdjustmentController::class, 'post']);
+        Route::post('/stock-adjustments/{id}/restore', [StockAdjustmentController::class, 'restore']);
     });
 });
 

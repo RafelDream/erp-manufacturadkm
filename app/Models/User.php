@@ -60,4 +60,9 @@ class User extends Authenticatable
     {
     return $this->hasMany(StockRequest::class, 'requested_by');
     }
+
+    public function stockAdjustments()
+    {
+        return $this->hasMany(StockAdjustment::class, 'created_by');
+    }
 }
