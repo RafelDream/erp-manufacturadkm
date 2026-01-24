@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class StockRequestController extends Controller
 {
     /**
-     * Display a listing of stock requests.
+     * List stock requests
      */
     public function index()
     {
@@ -24,7 +24,7 @@ class StockRequestController extends Controller
     }
 
     /**
-     * Store a newly created stock request.
+     * Create stock request
      */
     public function store(Request $request)
     {
@@ -73,7 +73,7 @@ class StockRequestController extends Controller
     }
 
     /**
-     * Display the specified stock request.
+     * Show stock request detail
      */
     public function show($id)
     {
@@ -84,13 +84,13 @@ class StockRequestController extends Controller
     }
 
     /**
-     * Update stock request (only if draft or submitted).
+     * Update stock request (ONLY DRAFT)
      */
     public function update(Request $request, $id)
     {
         $stockRequest = StockRequest::findOrFail($id);
 
-        if (!in_array($stockRequest->status, ['draft', 'submitted'])) {
+        if ($stockRequest->status !== 'draft') {
             return response()->json([
                 'message' => 'Permintaan tidak bisa diubah'
             ], 422);
@@ -141,7 +141,7 @@ class StockRequestController extends Controller
     }
 
     /**
-     * Remove stock request (soft delete).
+     * Delete stock request (soft delete)
      */
     public function destroy($id)
     {
@@ -160,15 +160,16 @@ class StockRequestController extends Controller
         ]);
     }
 
-    /** Restore Stock Requests
-     * */
+    /**
+     * Restore stock request
+     */
     public function restore($id)
     {
-    $stockRequest = StockRequest::withTrashed()->findOrFail($id);
-    $stockRequest->restore();
+        $stockRequest = StockRequest::withTrashed()->findOrFail($id);
+        $stockRequest->restore();
 
-    return response()->json([
-        'message' => 'Permintaan barang berhasil direstore'
-    ]);
+        return response()->json([
+            'message' => 'Permintaan barang berhasil direstore'
+        ]);
     }
 }

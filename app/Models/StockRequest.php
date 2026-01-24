@@ -9,33 +9,29 @@ class StockRequest extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'stock_requests';
-
     protected $fillable = [
         'request_number',
         'request_date',
         'request_by',
         'status',
+        'approved_by',
+        'approved_at',
         'notes',
     ];
 
-    protected $casts = [
-        'request_date' => 'date',
-    ];
+    public function items()
+    {
+        return $this->hasMany(StockRequestItem::class);
+    }
 
-    /* ======================
-     | RELATIONSHIPS
-     ====================== */
-
-    // Pemohon permintaan (User)
     public function requester()
     {
         return $this->belongsTo(User::class, 'request_by');
     }
 
-    // Item permintaan
-    public function items()
+    public function approver()
     {
-        return $this->hasMany(StockRequestItem::class);
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }
+

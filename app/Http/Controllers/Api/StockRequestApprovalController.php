@@ -4,22 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\StockRequest;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class StockRequestApprovalController extends Controller
 {
+    /**
+     * Approve stock request
+     */
     public function approve($id)
     {
-        $request = StockRequest::with('items')->findOrFail($id);
+        $stockRequest = StockRequest::with('items')->findOrFail($id);
 
-        if ($request->status !== 'draft') {
+        if ($stockRequest->status !== 'draft') {
             return response()->json([
                 'message' => 'Request sudah diproses'
             ], 422);
         }
 
-        $request->update([
+        $stockRequest->update([
             'status' => 'approved',
             'approved_by' => Auth::id(),
             'approved_at' => now(),
@@ -30,7 +32,10 @@ class StockRequestApprovalController extends Controller
         ]);
     }
 
-    public function reject(Request $request, $id)
+    /**
+     * Reject stock request
+     */
+    public function reject($id)
     {
         $stockRequest = StockRequest::findOrFail($id);
 

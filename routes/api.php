@@ -3,14 +3,15 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\UnitController;
-use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\StockAdjustmentController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\StockRequestController;
 use App\Http\Controllers\Api\StockRequestApprovalController;
 use App\Http\Controllers\Api\StockOutController;
+use App\Http\Controllers\Api\StockTransferController;
 use App\Http\Controllers\Api\StockInitialController;
 
 Route::prefix('v1')->group(function () {
@@ -32,17 +33,25 @@ Route::prefix('v1')->group(function () {
         Route::post('warehouses/{id}/restore', [WarehouseController::class, 'restore']);
 
         Route::apiResource('stock-requests', StockRequestController::class);
-        Route::post('/stock-requests/{id}/approve', [StockRequestApprovalController::class, 'approve']);
-        Route::post('/stock-requests/{id}/reject', [StockRequestApprovalController::class, 'reject']);
         Route::post('/stock-requests/{id}/restore', [StockRequestController::class, 'restore']);
-        //Stock Out
+
+        Route::prefix('stock-requests-approval/{id}')->group(function () {
+            Route::post('approve', [StockRequestApprovalController::class, 'approve']);
+            Route::post('reject', [StockRequestApprovalController::class, 'reject']);
+        });
+
         Route::post('/stock-outs', [StockOutController::class, 'store']);
-        //Initial Stock
         Route::post('/initial-stocks', [StockInitialController::class, 'store']);
-        //Stock Adjustment
+
+        Route::apiResource('stock-transfers', StockTransferController::class);
+        Route::post('/stock-transfers/{id}/approve', [StockTransferController::class, 'approve']);
+        Route::post('/stock-transfers/{id}/reject', [StockTransferController::class, 'reject']);
+        Route::post('/stock-transfers/{id}/execute', [StockTransferController::class, 'execute']);
+
         Route::apiResource('stock-adjustments', StockAdjustmentController::class);
         Route::post('/stock-adjustments/{id}/post', [StockAdjustmentController::class, 'post']);
         Route::post('/stock-adjustments/{id}/restore', [StockAdjustmentController::class, 'restore']);
+
     });
 });
 

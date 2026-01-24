@@ -14,10 +14,6 @@ class StockRequestItem extends Model
         'quantity',
     ];
 
-    /* ======================
-     | RELATIONSHIPS
-     ====================== */
-
      // Header permintaan
     public function stockRequest()
     {

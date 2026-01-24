@@ -135,7 +135,7 @@ class StockAdjustmentController extends Controller
         
         public function show($id)
         {
-            $adjustment = StockAdjustment::withTrashed([
+            $adjustment = StockAdjustment::withTrashed()->with([
                 'warehouse',
                 'creator',
                 'items.product'
