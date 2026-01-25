@@ -41,8 +41,8 @@ class StockInitialController extends Controller
                     'warehouse_id' => $validated['warehouse_id'],
                     'type' => 'in',
                     'quantity' => $item['quantity'],
-                    'reference_type' => 'initial_stock',
-                    'reference_id' => null,
+                    'reference_type' => 'Stok Awal',
+                    'reference_id' => $stock->id,
                     'notes' => 'Stok awal',
                     'created_by' => Auth::id(),
                 ]);

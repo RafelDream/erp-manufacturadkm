@@ -69,13 +69,13 @@ class StockAdjustmentController extends Controller
     /**
      * POST ADJUSTMENT (FINAL)
      */
-    public function post($id)
+    public function approve($id)
     {
         $adjustment = StockAdjustment::with('items')
             ->lockForUpdate()
             ->findOrFail($id);
 
-        if ($adjustment->status === 'posted') {
+        if ($adjustment->status === 'approved') {
             throw ValidationException::withMessages([
                 'status' => 'Stock adjustment sudah diposting sebelumnya'
             ]);
@@ -93,9 +93,9 @@ class StockAdjustmentController extends Controller
                 StockMovement::create([
                     'product_id'    => $item->product_id,
                     'warehouse_id'  => $adjustment->warehouse_id,
-                    'movement_type' => 'ADJUSTMENT',
+                    'movement_type' => 'adjustment',
                     'quantity'      => $item->difference,
-                    'reference_type'=> StockAdjustment::class,
+                    'reference_type'=> "Penyesuaian jumlah stok",
                     'reference_id'  => $adjustment->id,
                     'created_by'    => Auth::id(),
                 ]);
@@ -112,7 +112,7 @@ class StockAdjustmentController extends Controller
                 $stock->increment('quantity', $item->difference);
             }
 
-            $adjustment->update(['status' => 'posted']);
+            $adjustment->update(['status' => 'approved']);
         });
 
         return response()->json([
@@ -148,7 +148,7 @@ class StockAdjustmentController extends Controller
         {
             $adjustment = StockAdjustment::findOrFail($id);
 
-            if ($adjustment->status === 'posted') {
+            if ($adjustment->status === 'approved') {
                 return response()->json([
                     'message' => 'Stock adjustment yang sudah dipost tidak bisa diubah'
                 ], 422);
@@ -175,7 +175,7 @@ class StockAdjustmentController extends Controller
         {
             $adjustment = StockAdjustment::findOrFail($id);
 
-            if ($adjustment->status === 'posted') {
+            if ($adjustment->status === 'approved') {
                 return response()->json([
                     'message' => 'Data yang sudah dipost tidak bisa dihapus'
                 ], 422);

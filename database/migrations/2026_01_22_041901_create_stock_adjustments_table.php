@@ -20,7 +20,7 @@ return new class extends Migration
                   ->cascadeOnDelete();
             $table->string('reason')->nullable();
             $table->text('notes')->nullable();
-            $table->enum('status', ['draft', 'posted'])-> default('draft');
+            $table->enum('status', ['draft', 'approved'])-> default('draft');
             $table->foreignId('created_by')->constrained('users');
             $table->softDeletes();
             $table->timestamps();

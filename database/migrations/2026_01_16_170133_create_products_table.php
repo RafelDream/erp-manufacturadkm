@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('unit_id')->constrained('units');
             $table->string('tipe');
-            $table->decimal('volume', 8, 2)->nullable(); // liter/ml
-            $table->boolean('is_returnable')->default(false); // galon
+            $table->decimal('volume', 8, 2)->nullable(); 
+            $table->boolean('is_returnable')->default(false);
             $table->decimal('harga', 15, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

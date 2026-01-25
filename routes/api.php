@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/stock-transfers/{id}/execute', [StockTransferController::class, 'execute']);
 
         Route::apiResource('stock-adjustments', StockAdjustmentController::class);
-        Route::post('/stock-adjustments/{id}/post', [StockAdjustmentController::class, 'post']);
+        Route::post('/stock-adjustments/{id}/approved', [StockAdjustmentController::class, 'approve']);
         Route::post('/stock-adjustments/{id}/restore', [StockAdjustmentController::class, 'restore']);
 
     });

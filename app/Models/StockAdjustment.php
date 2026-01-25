@@ -57,16 +57,16 @@ class StockAdjustment extends Model
 
     protected static function booted()
     {
-        // Proteksi agar data yang sudah 'posted' tidak bisa diubah
+        // Proteksi agar data yang sudah 'approved' tidak bisa diubah
         static::updating(function ($model) {
-            if ($model->isDirty('status') && $model->getOriginal('status') === 'posted') {
+            if ($model->isDirty('status') && $model->getOriginal('status') === 'approved') {
                 throw new \Exception('Data tidak dapat diubah karena status sudah diposting.');
             }
         });
 
-        // Proteksi agar data yang sudah 'posted' tidak bisa dihapus
+        // Proteksi agar data yang sudah 'approved' tidak bisa dihapus
         static::deleting(function ($model) {
-            if ($model->status === 'posted') {
+            if ($model->status === 'approved') {
                 throw new \Exception('Data yang sudah diposting tidak dapat dihapus.');
             }
         });

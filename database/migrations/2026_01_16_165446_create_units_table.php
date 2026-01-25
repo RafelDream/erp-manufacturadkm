@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->string('kode')->unique(); // Misalnya PCS,GALON,BOTOL,DUS DLL
+            $table->string('kode')->unique();
             $table->string('name');
             $table->string('description')->nullable();
             $table->boolean('is_active')->default(true);
