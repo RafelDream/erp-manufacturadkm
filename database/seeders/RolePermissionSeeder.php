@@ -23,7 +23,7 @@ class RolePermissionSeeder extends Seeder
             'view-inventory', 'create-production', 'update-stock', 'qc-check',
             'view-sales', 'create-sales',
             'create-delivery', 'update-delivery',
-            'view-report',   'manage-units', 'manage-products',
+            'view-report',   'manage-units', 'manage-products', 'manage-raw-materials',
         ];
 
         foreach ($permissions as $permission) {
@@ -58,6 +58,7 @@ class RolePermissionSeeder extends Seeder
             'view-master', 'create-master', 'update-master',
             'view-purchase', 'create-purchase', 'update-purchase',
             'view-inventory', 'update-stock', 'manage-products',
+            'manage-raw-materials',
         ]);
         
         Role::findByName('admin-penjualan')->givePermissionTo([

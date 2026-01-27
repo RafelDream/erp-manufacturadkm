@@ -28,6 +28,11 @@ class Warehouse extends Model
         return $this->hasMany(StockAdjustment::class);
     }
 
+    public function rawMaterialStock()
+    {
+        return $this->hasMany(RawMaterialStock::class);
+    }
+
     protected $casts = [
         'is_active' => 'boolean',
     ];

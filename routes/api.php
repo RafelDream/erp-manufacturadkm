@@ -13,6 +13,9 @@ use App\Http\Controllers\Api\StockRequestApprovalController;
 use App\Http\Controllers\Api\StockOutController;
 use App\Http\Controllers\Api\StockTransferController;
 use App\Http\Controllers\Api\StockInitialController;
+use App\Http\Controllers\Api\RawMaterialController;
+use App\Http\Controllers\Api\RawMaterialStockInController;
+use App\Http\Controllers\Api\RawMaterialStockOutController;
 
 Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -51,6 +54,19 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('stock-adjustments', StockAdjustmentController::class);
         Route::post('/stock-adjustments/{id}/approved', [StockAdjustmentController::class, 'approve']);
         Route::post('/stock-adjustments/{id}/restore', [StockAdjustmentController::class, 'restore']);
+
+         //Route Raw Material
+        Route::apiResource('raw-materials', RawMaterialController::class);
+        Route::post('/raw-materials/{id}/post', [RawMaterialController::class, 'post']);
+        Route::post('/raw-materials/{id}/restore', [RawMaterialController::class, 'restore']);
+
+        Route::apiResource('raw-material-stock-in', RawMaterialStockInController::class);
+        Route::post('/raw-material-stock-in/{id}/post', [RawMaterialStockInController::class, 'post']);
+        Route::post('/raw-material-stock-in/{id}/restore', [RawMaterialStockInController::class, 'restore']);
+
+        Route::apiResource('raw-material-stock-out', RawMaterialStockOutController::class);
+        Route::post('/raw-material-stock-out/{id}/post', [RawMaterialStockOutController::class, 'post']);
+        Route::post('/raw-material-stock-out/{id}/restore', [RawMaterialStockOutController::class, 'restore']);
 
     });
 });
