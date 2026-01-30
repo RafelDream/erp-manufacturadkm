@@ -21,4 +21,16 @@ class StockTransfer extends Model
     public function items() {
         return $this->hasMany(StockTransferItem::class);
     }
+    public function dariWarehouse() {
+        return $this->belongsTo(Warehouse::class, 'dari_warehouse_id');
+    }
+    public function keWarehouse() {
+        return $this->belongsTo(Warehouse::class, 'ke_warehouse_id');
+    }
+    public function creator() {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+    public function approver() {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
 }

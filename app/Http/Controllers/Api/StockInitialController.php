@@ -11,6 +11,39 @@ use Illuminate\Support\Facades\Auth;
 
 class StockInitialController extends Controller
 {
+    /**
+     * Display a listing of the stocks.
+     */
+    public function index()
+    {
+        $stocks = Stock::with(['product', 'warehouse'])->get();
+
+        $data = $stocks->map(function ($stock) {
+            return [
+                'stock_id'     => $stock->id,
+                'product_id'    => $stock->product_id,
+                'product_name'  => $stock->product->name ?? 'N/A',
+                'warehouse'     => $stock->warehouse->name ?? 'N/A',
+                'quantity'      => $stock->quantity,
+            ];
+        });
+
+        return response()->json($data);
+    }
+
+    /**
+     * Display the specified stock.
+     */
+    public function show($id)
+    {
+        return response()->json(
+            Stock::with(['product', 'warehouse'])->findOrFail($id)
+        );
+    }
+
+    /**
+     * Store initial stock and record movements.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -21,9 +54,8 @@ class StockInitialController extends Controller
         ]);
 
         DB::transaction(function () use ($validated) {
-
             foreach ($validated['items'] as $item) {
-
+                // Update or Create the stock record
                 $stock = Stock::firstOrCreate(
                     [
                         'product_id' => $item['product_id'],
@@ -34,23 +66,25 @@ class StockInitialController extends Controller
                     ]
                 );
 
+                // Increment the physical stock
                 $stock->increment('quantity', $item['quantity']);
 
+                // Record the movement history
                 StockMovement::create([
-                    'product_id' => $item['product_id'],
-                    'warehouse_id' => $validated['warehouse_id'],
-                    'type' => 'in',
-                    'quantity' => $item['quantity'],
+                    'product_id'     => $item['product_id'],
+                    'warehouse_id'   => $validated['warehouse_id'],
+                    'type'           => 'in',
+                    'quantity'       => $item['quantity'],
                     'reference_type' => 'Stok Awal',
-                    'reference_id' => $stock->id,
-                    'notes' => 'Stok awal',
-                    'created_by' => Auth::id(),
+                    'reference_id'   => $stock->id,
+                    'notes'          => 'Stok awal',
+                    'created_by'     => Auth::id(),
                 ]);
             }
         });
 
         return response()->json([
             'message' => 'Stok awal berhasil diinput'
-        ]);
+        ], 201);
     }
 }

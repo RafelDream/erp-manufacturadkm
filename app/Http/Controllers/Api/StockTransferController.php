@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Auth;
 
 class StockTransferController extends Controller
 {
+    public function index()
+    {
+        return response()->json(
+            StockTransfer::with(['items.product', 'dariWarehouse', 'keWarehouse', 'creator', 'approver'])
+                ->latest()
+                ->get()
+        );
+    }
+    
     public function store(Request $request)
     {
         $data = $request->validate([

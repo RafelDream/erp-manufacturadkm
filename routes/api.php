@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/stock-outs', [StockOutController::class, 'store']);
         Route::delete('/stock-outs/{id}', [StockOutController::class, 'destroy']);
 
+        Route::apiResource('initial-stocks', StockInitialController::class);
         Route::post('/initial-stocks', [StockInitialController::class, 'store']);
 
         Route::apiResource('stock-transfers', StockTransferController::class);
@@ -147,14 +148,9 @@ Route::prefix('v1')->group(function () {
             'submit'
         ]);
 
-        Route::post('purchase-orders/{id}/approve', [
+        Route::post('purchase-orders/{id}/receive', [
             PurchaseOrderController::class,
-            'approve'
-        ]);
-
-        Route::post('purchase-orders/{id}/reject', [
-            PurchaseOrderController::class,
-            'reject'
+            'receive'
         ]);
 
         Route::post('purchase-orders/from-pr/{purchaseRequest}', [
@@ -168,7 +164,6 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 });
-
 /*
 |--------------------------------------------------------------------------
 | SUPER ADMIN
