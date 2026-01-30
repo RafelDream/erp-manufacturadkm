@@ -13,6 +13,15 @@ use Illuminate\Support\Facades\Auth;
 
 class StockOutController extends Controller
 {
+    public function index()
+    {
+        return response()->json(
+            StockOut::with(['items.product', 'stockRequest', 'creator', 'warehouse'])
+                ->latest()
+                ->get()
+        );
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -30,7 +39,14 @@ class StockOutController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($validated, $stockRequest) {
+        if ($stockRequest->completed_at) {
+            return response()->json([
+                'message' => 'Stock request sudah pernah diproses'
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
 
             $stockOut = StockOut::create([
                 'stock_request_id' => $stockRequest->id,
@@ -41,7 +57,6 @@ class StockOutController extends Controller
             ]);
 
             foreach ($stockRequest->items as $item) {
-
                 $stock = Stock::where('product_id', $item->product_id)
                     ->where('warehouse_id', $validated['warehouse_id'])
                     ->lockForUpdate()
@@ -65,14 +80,83 @@ class StockOutController extends Controller
                     'quantity' => $item->quantity,
                     'reference_type' => 'stock_out',
                     'reference_id' => $stockOut->id,
-                    'notes' => 'Pengeluaran barang dari stock request #' . $stockRequest->id,
+                    'notes' => 'Pengeluaran barang dari stock request #' . $stockRequest->request_number,
                     'created_by' => Auth::id(),
                 ]);
             }
-        });
 
-        return response()->json([
-            'message' => 'Stock out & stock movement berhasil dibuat'
-        ]);
+            // ✅✅✅ INI YANG KURANG - UPDATE STATUS STOCK REQUEST ✅✅✅
+            $stockRequest->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+                'completed_by' => Auth::id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Stock out berhasil dibuat dan stock request telah diselesaikan',
+                'data' => $stockOut->load('items.product', 'stockRequest')
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Gagal membuat stock out',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $stockOut = StockOut::with('items', 'stockRequest')->findOrFail($id);
+
+            foreach ($stockOut->items as $item) {
+                // 1. Kembalikan stok yang tadinya keluar
+                $stock = Stock::where('product_id', $item->product_id)
+                    ->where('warehouse_id', $stockOut->warehouse_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($stock) {
+                    $stock->increment('quantity', $item->quantity);
+                }
+
+                // 2. Hapus movement terkait
+                StockMovement::where('reference_type', 'stock_out')
+                    ->where('reference_id', $stockOut->id)
+                    ->where('product_id', $item->product_id)
+                    ->delete();
+            }
+
+            if ($stockOut->stockRequest) {
+                $stockOut->stockRequest->update([
+                    'status' => 'approved',
+                    'completed_at' => null,
+                    'completed_by' => null,
+                ]);
+            }
+
+            $stockOut->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Stock out berhasil dihapus, stok dikembalikan, dan stock request di-reset'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Gagal menghapus stock out',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

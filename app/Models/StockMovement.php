@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Product;
 use App\Models\Warehouse;
+use App\Models\User;
 
 class StockMovement extends Model
 {
@@ -19,6 +20,10 @@ class StockMovement extends Model
         'created_by'
     ];
 
+    protected $casts = [
+        'quantity' => 'decimal:2',
+    ];
+
     public function product()
     {
         return $this->belongsTo(Product::class);
@@ -27,5 +32,10 @@ class StockMovement extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

@@ -17,8 +17,15 @@ class StockRequest extends Model
         'approved_by',
         'approved_at',
         'notes',
+        'completed_at',
+        'completed_by'
     ];
 
+    protected $casts = [
+    'request_date' => 'date',
+    'approved_at' => 'datetime',
+    'completed_at' => 'datetime', 
+];
     public function items()
     {
         return $this->hasMany(StockRequestItem::class);
@@ -32,6 +39,16 @@ class StockRequest extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+        public function completer()
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    public function stockOut()
+    {
+        return $this->hasOne(StockOut::class);
     }
 }
 

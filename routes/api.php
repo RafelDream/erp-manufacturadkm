@@ -65,7 +65,10 @@ Route::prefix('v1')->group(function () {
         | STOCK
         |--------------------------------------------------------------------------
         */
+        Route::apiResource('stock-outs', StockOutController::class);
         Route::post('/stock-outs', [StockOutController::class, 'store']);
+        Route::delete('/stock-outs/{id}', [StockOutController::class, 'destroy']);
+
         Route::post('/initial-stocks', [StockInitialController::class, 'store']);
 
         Route::apiResource('stock-transfers', StockTransferController::class);
