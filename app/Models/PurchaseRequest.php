@@ -20,32 +20,28 @@ class PurchaseRequest extends Model
         'notes',
         'approved_by',
         'approved_at',
+        'completed_at',
+        'completed_by',
+        'created_by', 
         'approval_notes',
     ];
 
     protected $casts = [
         'request_date' => 'date',
+        'approved_at' => 'datetime',
+        'completed_at' => 'datetime', 
     ];
 
-    /**
-     * Items PR
-     */
     public function items()
     {
         return $this->hasMany(PurchaseRequestItem::class);
     }
 
-    /**
-     * User pembuat PR
-     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * User pemohon
-     */
     public function requester()
     {
         return $this->belongsTo(User::class, 'request_by');
@@ -54,5 +50,17 @@ class PurchaseRequest extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    // ✅ TAMBAHKAN RELASI INI
+    public function completer()
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    // ✅ TAMBAHKAN RELASI INI
+    public function purchaseOrder()
+    {
+        return $this->hasOne(PurchaseOrder::class);
     }
 }

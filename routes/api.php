@@ -25,6 +25,8 @@ use App\Http\Controllers\Api\RawMaterialStockAdjustmentController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\PurchaseRequestItemController;
 use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\GoodsReceiptController;
+use App\Http\Controllers\Api\PurchaseOrderItemController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,11 +68,8 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::apiResource('stock-outs', StockOutController::class);
-        Route::post('/stock-outs', [StockOutController::class, 'store']);
-        Route::delete('/stock-outs/{id}', [StockOutController::class, 'destroy']);
 
         Route::apiResource('initial-stocks', StockInitialController::class);
-        Route::post('/initial-stocks', [StockInitialController::class, 'store']);
 
         Route::apiResource('stock-transfers', StockTransferController::class);
         Route::post('stock-transfers/{id}/approve', [StockTransferController::class, 'approve']);
@@ -78,7 +77,7 @@ Route::prefix('v1')->group(function () {
         Route::post('stock-transfers/{id}/execute', [StockTransferController::class, 'execute']);
 
         Route::apiResource('stock-adjustments', StockAdjustmentController::class);
-        Route::post('stock-adjustments/{id}/approved', [StockAdjustmentController::class, 'approve']);
+        Route::post('stock-adjustments/{id}/approve', [StockAdjustmentController::class, 'approve']);
         Route::post('stock-adjustments/{id}/restore', [StockAdjustmentController::class, 'restore']);
 
         /*
@@ -95,8 +94,9 @@ Route::prefix('v1')->group(function () {
         Route::post('raw-material-stock-out/{id}/restore', [RawMaterialStockOutController::class, 'restore']);
 
         Route::apiResource('raw-material-stock-adjustments', RawMaterialStockAdjustmentController::class);
-        Route::post('/raw-material-stock-adjustments/{id}/post', [RawMaterialStockAdjustmentController::class, 'post']);
-        Route::post('/raw-material-stock-adjustments/{id}/restore', [RawMaterialStockAdjustmentController::class, 'restore']);
+        Route::post('raw-material-stock-adjustments/{id}/post', [RawMaterialStockAdjustmentController::class, 'post']);
+        Route::post('raw-material-stock-adjustments/{id}/restore', [RawMaterialStockAdjustmentController::class, 'restore']);
+
         /*
         |--------------------------------------------------------------------------
         | STOCK REQUEST
@@ -121,15 +121,8 @@ Route::prefix('v1')->group(function () {
         Route::post('purchase-requests/{id}/reject', [PurchaseRequestController::class, 'reject']);
         Route::post('purchase-requests/{id}/restore', [PurchaseRequestController::class, 'restore']);
 
-        Route::apiResource('purchase-request-items', PurchaseRequestItemController::class);
-        
-        /*
-        |--------------------------------------------------------------------------
-        | PURCHASE ORDER (PO)
-        |--------------------------------------------------------------------------
-        */
-
-
+        Route::post('purchase-request-items', [PurchaseRequestItemController::class, 'store']);
+        Route::delete('purchase-request-items/{id}', [PurchaseRequestItemController::class, 'destroy']);
 
         /*
         |--------------------------------------------------------------------------
@@ -137,10 +130,15 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::apiResource('purchase-orders', PurchaseOrderController::class);
-
-        Route::post('purchase-orders/{id}/restore', [
+        
+        Route::post('purchase-orders/from-pr/{purchaseRequest}', [
             PurchaseOrderController::class,
-            'restore'
+            'generateFromPR'
+        ]);
+
+        Route::post('purchase-orders/item/{item}/price', [
+            PurchaseOrderController::class,
+            'updateItemPrice'
         ]);
 
         Route::post('purchase-orders/{id}/submit', [
@@ -153,17 +151,21 @@ Route::prefix('v1')->group(function () {
             'receive'
         ]);
 
-        Route::post('purchase-orders/from-pr/{purchaseRequest}', [
+        Route::post('purchase-orders/{id}/restore', [
             PurchaseOrderController::class,
-            'generateFromPR'
+            'restore'
         ]);
-
-        Route::post('purchase-orders/item/{item}/price', [
-            PurchaseOrderController::class,
-            'updateItemPrice'
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | PURCHASE ORDER (PO)
+        |--------------------------------------------------------------------------
+        */
+        Route::apiResource('goods-receipts', GoodsReceiptController::class);
+        Route::post('goods-receipts/{id}/post', [GoodsReceiptController::class, 'post']);
+        Route::post('goods-receipts/{id}/restore', [GoodsReceiptController::class, 'restore']);
     });
 });
+
 /*
 |--------------------------------------------------------------------------
 | SUPER ADMIN

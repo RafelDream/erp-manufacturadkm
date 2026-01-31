@@ -10,64 +10,59 @@ use Illuminate\Support\Facades\DB;
 
 class PurchaseRequestController extends Controller
 {
-    /**
-     * GET - list PR
-     */
     public function index()
     {
         return response()->json(
-            PurchaseRequest::with(['items', 'creator', 'requester'])
+            PurchaseRequest::with(['items.rawMaterial', 'items.product', 'creator', 'requester', 'purchaseOrder'])
                 ->latest()
                 ->get()
         );
     }
 
-    /**
-     * GET - detail PR
-     */
     public function show($id)
     {
         return response()->json(
-            PurchaseRequest::with(['items', 'creator', 'requester'])
+            PurchaseRequest::with(['items.rawMaterial', 'items.product', 'creator', 'requester', 'purchaseOrder'])
                 ->findOrFail($id)
         );
     }
 
-    /**
-     * POST - create PR
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'request_date' => 'required|date',
-            'type'         => 'required|string',
+            'type'         => 'required|in:raw_materials,product',
             'department'   => 'nullable|string',
-            'request_by' => 'required|exists:users,id',
             'notes'        => 'nullable|string',
         ]);
 
-        $pr = DB::transaction(function () use ($validated) {
-            return PurchaseRequest::create([
-                'kode'         => 'PR-' . now()->format('YmdHis'),
-                'request_date' => $validated['request_date'],
-                'type'         => $validated['type'],
-                'department'   => $validated['department'] ?? null,
-                'request_by' => $validated['request_by'],
-                'status'       => 'draft',
-                'notes'        => $validated['notes'] ?? null,
-                'created_by'   => Auth::id(),
-            ]);
-        });
+        try {
+            $pr = DB::transaction(function () use ($validated) {
+                return PurchaseRequest::create([
+                    'kode'         => 'PR-' . now()->format('YmdHis'),
+                    'request_date' => $validated['request_date'],
+                    'type'         => $validated['type'],
+                    'department'   => $validated['department'] ?? null,
+                    'request_by'   => Auth::id(),
+                    'status'       => 'draft',
+                    'notes'        => $validated['notes'] ?? null,
+                    'created_by'   => Auth::id(),
+                ]);
+            });
 
-        return response()->json([
-            'message' => 'Purchase Request berhasil dibuat',
-            'data'    => $pr
-        ], 201);
+            return response()->json([
+                'message' => 'Purchase Request berhasil dibuat',
+                'data'    => $pr
+            ], 201);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal membuat PR',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    /**
-     * PUT - update PR (selama masih DRAFT)
-     */
     public function update(Request $request, $id)
     {
         $pr = PurchaseRequest::findOrFail($id);
@@ -80,6 +75,7 @@ class PurchaseRequestController extends Controller
 
         $validated = $request->validate([
             'request_date' => 'required|date',
+            'type'         => 'required|in:raw_materials,product',
             'department'   => 'nullable|string',
             'notes'        => 'nullable|string',
         ]);
@@ -91,21 +87,23 @@ class PurchaseRequestController extends Controller
         ]);
     }
 
-    /**
-     * DELETE - soft delete PR
-     */
     public function destroy($id)
     {
-        PurchaseRequest::findOrFail($id)->delete();
+        $pr = PurchaseRequest::findOrFail($id);
+        
+        if ($pr->purchaseOrder) {
+            return response()->json([
+                'message' => 'PR yang sudah memiliki PO tidak dapat dihapus'
+            ], 422);
+        }
+
+        $pr->delete();
 
         return response()->json([
             'message' => 'Purchase Request berhasil dihapus'
         ]);
     }
 
-    /**
-     * RESTORE - restore PR
-     */
     public function restore($id)
     {
         PurchaseRequest::withTrashed()
@@ -117,32 +115,30 @@ class PurchaseRequestController extends Controller
         ]);
     }
 
-    /**
-     * POST - submit PR
-     */
     public function submit($id)
     {
         $pr = PurchaseRequest::findOrFail($id);
 
         if ($pr->status !== 'draft') {
             return response()->json([
-                'message' => 'Only draft PR can be submitted'
+                'message' => 'Hanya draft PR yang bisa disubmit'
             ], 422);
         }
 
-        $pr->update(['status' => 'SUBMITTED']);
+        $pr->update(['status' => 'submitted']);
 
         return response()->json([
-            'message' => 'Purchase Request submitted'
+            'message' => 'Purchase Request berhasil disubmit'
         ]);
     }
+
     public function approve($id)
     {
         $pr = PurchaseRequest::findOrFail($id);
 
         if ($pr->status !== 'submitted') {
             return response()->json([
-                'message' => 'Only submitted PR can be approved'
+                'message' => 'Hanya submitted PR yang bisa diapprove'
             ], 422);
         }
 
@@ -153,16 +149,17 @@ class PurchaseRequestController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Purchase Request approved'
+            'message' => 'Purchase Request berhasil diapprove'
         ]);
     }
+
     public function reject($id)
     {
         $pr = PurchaseRequest::findOrFail($id);
 
         if ($pr->status !== 'submitted') {
             return response()->json([
-                'message' => 'Only submitted PR can be rejected'
+                'message' => 'Hanya submitted PR yang bisa direject'
             ], 422);
         }
 
@@ -173,7 +170,7 @@ class PurchaseRequestController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Purchase Request rejected'
+            'message' => 'Purchase Request ditolak'
         ]);
     }
 }

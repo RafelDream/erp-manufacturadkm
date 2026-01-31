@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('purchase_requests', function (Blueprint $table) {
@@ -18,18 +15,23 @@ return new class extends Migration
             $table->enum('type', ['raw_materials', 'product']);
             $table->string('department')->nullable();
             $table->text('notes')->nullable();
-            $table->enum('status', ['draft','submitted', 'approved', 'rejected',])->default('draft');
+            
+            $table->enum('status', ['draft', 'submitted', 'approved', 'rejected', 'completed'])->default('draft');
+            
             $table->foreignId('request_by')->constrained('users');
             $table->foreignId('approved_by')->nullable()->constrained('users');
             $table->timestamp('approved_at')->nullable();
+            
+            $table->timestamp('completed_at')->nullable();
+            $table->foreignId('completed_by')->nullable()->constrained('users')->onDelete('set null');
+            
+            $table->foreignId('created_by')->constrained('users');
+            
             $table->timestamps();
             $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('purchase_requests');
