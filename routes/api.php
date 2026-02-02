@@ -26,7 +26,8 @@ use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\PurchaseRequestItemController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\GoodsReceiptController;
-use App\Http\Controllers\Api\PurchaseOrderItemController;
+use App\Http\Controllers\Api\PurchaseReturnController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -131,30 +132,11 @@ Route::prefix('v1')->group(function () {
         */
         Route::apiResource('purchase-orders', PurchaseOrderController::class);
         
-        Route::post('purchase-orders/from-pr/{purchaseRequest}', [
-            PurchaseOrderController::class,
-            'generateFromPR'
-        ]);
-
-        Route::post('purchase-orders/item/{item}/price', [
-            PurchaseOrderController::class,
-            'updateItemPrice'
-        ]);
-
-        Route::post('purchase-orders/{id}/submit', [
-            PurchaseOrderController::class,
-            'submit'
-        ]);
-
-        Route::post('purchase-orders/{id}/receive', [
-            PurchaseOrderController::class,
-            'receive'
-        ]);
-
-        Route::post('purchase-orders/{id}/restore', [
-            PurchaseOrderController::class,
-            'restore'
-        ]);
+        Route::post('purchase-orders/from-pr/{purchaseRequest}', [PurchaseOrderController::class,'generateFromPR']);
+        Route::post('purchase-orders/item/{item}/price', [PurchaseOrderController::class,'updateItemPrice']);
+        Route::post('purchase-orders/{id}/submit', [PurchaseOrderController::class,'submit']);
+        Route::post('purchase-orders/{id}/receive', [PurchaseOrderController::class,'receive']);
+        Route::post('purchase-orders/{id}/restore', [PurchaseOrderController::class,'restore']);
         /*
         |--------------------------------------------------------------------------
         | PURCHASE ORDER (PO)
@@ -163,6 +145,31 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('goods-receipts', GoodsReceiptController::class);
         Route::post('goods-receipts/{id}/post', [GoodsReceiptController::class, 'post']);
         Route::post('goods-receipts/{id}/restore', [GoodsReceiptController::class, 'restore']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | RETUR PEMBELIAN 
+        |--------------------------------------------------------------------------
+        */
+        // List & Detail
+        Route::get('purchase-returns', [PurchaseReturnController::class, 'index']);
+        Route::get('purchase-returns/{id}', [PurchaseReturnController::class, 'show']);
+        // CRUD
+        Route::post('purchase-returns', [PurchaseReturnController::class, 'store']);
+        Route::put('purchase-returns/{id}', [PurchaseReturnController::class, 'update']);
+        Route::delete('purchase-returns/{id}', [PurchaseReturnController::class, 'destroy']);
+        Route::post('purchase-returns/{id}/restore', [PurchaseReturnController::class, 'restore']);
+
+        // Additional Actions
+        Route::post('purchase-returns/{id}/submit', [PurchaseReturnController::class, 'submit']);
+        Route::post('purchase-returns/{id}/approve', [PurchaseReturnController::class, 'approve']);
+        Route::post('purchase-returns/{id}/reject', [PurchaseReturnController::class, 'reject']);
+        Route::post('purchase-returns/{id}/realize', [PurchaseReturnController::class, 'realize']);
+        Route::post('purchase-returns/{id}/complete', [PurchaseReturnController::class, 'complete']);
+
+        // Helper Endpoints
+        Route::get('/purchase-returns-helpers/returnable-pos', [PurchaseReturnController::class, 'getReturnablePurchaseOrders']);
+        Route::get('/purchase-returns-helpers/returnable-items/{goodsReceiptId}', [PurchaseReturnController::class, 'getReturnableItems']);
     });
 });
 
