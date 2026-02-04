@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\PurchaseRequestItemController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\PurchaseReturnController;
+use App\Http\Controllers\Api\InvoiceReceiptController;
 
 
 /*
@@ -170,6 +171,40 @@ Route::prefix('v1')->group(function () {
         // Helper Endpoints
         Route::get('/purchase-returns-helpers/returnable-pos', [PurchaseReturnController::class, 'getReturnablePurchaseOrders']);
         Route::get('/purchase-returns-helpers/returnable-items/{goodsReceiptId}', [PurchaseReturnController::class, 'getReturnableItems']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | RETUR PEMBELIAN 
+        |--------------------------------------------------------------------------
+        */
+        
+        // List & Detail
+        Route::get('/invoice-receipts', [InvoiceReceiptController::class, 'index']);
+        Route::get('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'show']);
+        
+        // CRUD Operations
+        Route::post('/invoice-receipts', [InvoiceReceiptController::class, 'store']);
+        Route::put('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'update']);
+        Route::delete('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'destroy']);
+        Route::post('/invoice-receipts/{id}/restore', [InvoiceReceiptController::class, 'restore']);
+        
+        // Invoice Management
+        Route::post('/invoice-receipts/{id}/invoices', [InvoiceReceiptController::class, 'addInvoice']);
+        Route::put('/invoice-receipts/{receiptId}/invoices/{invoiceId}', [InvoiceReceiptController::class, 'updateInvoice']);
+        Route::delete('/invoice-receipts/{receiptId}/invoices/{invoiceId}', [InvoiceReceiptController::class, 'removeInvoice']);
+        
+        // Status Actions
+        Route::post('/invoice-receipts/{id}/submit', [InvoiceReceiptController::class, 'submit']);
+        Route::post('/invoice-receipts/{id}/approve', [InvoiceReceiptController::class, 'approve']);
+        Route::post('/invoice-receipts/{id}/reject', [InvoiceReceiptController::class, 'reject']);
+        
+        // Helper Endpoints
+        Route::get('/invoice-receipts-helpers/eligible-pos', [InvoiceReceiptController::class, 'getEligiblePurchaseOrders']);
+        Route::get('/invoice-receipts/{id}/summary', [InvoiceReceiptController::class, 'getSummary']);
+
+
+
+
     });
 });
 
