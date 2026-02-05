@@ -220,7 +220,6 @@ class PurchaseOrderController extends Controller
     {
         $po = PurchaseOrder::with('purchaseRequest')->findOrFail($id);
 
-        // ✅ JANGAN HAPUS PO YANG SUDAH SENT/RECEIVED
         if (in_array($po->status, ['sent', 'received', 'closed'])) {
             return response()->json([
                 'message' => 'PO yang sudah dikirim/diterima tidak dapat dihapus'
@@ -229,7 +228,6 @@ class PurchaseOrderController extends Controller
 
         try {
             DB::transaction(function () use ($po) {
-                // ✅ KEMBALIKAN STATUS PR KE APPROVED
                 if ($po->purchaseRequest) {
                     $po->purchaseRequest->update([
                         'status' => 'approved',
