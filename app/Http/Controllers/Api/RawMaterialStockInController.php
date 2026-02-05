@@ -132,15 +132,28 @@ class RawMaterialStockInController extends Controller
             'stock_in_date' => 'sometimes|date',
             'warehouse_id'  => 'sometimes|exists:warehouses,id',
             'notes'         => 'nullable|string',
+            'items'         => 'sometimes|array|min:1',
+            'items.*.raw_material_id' => 'required_with:items|exists:raw_materials,id',
+            'items.*.quantity'        => 'required_with:items|numeric|min:0.01',
         ]);
 
+        return DB::transaction(function () use ($validated, $stockIn) {
         $stockIn->update($validated);
+
+        // Jika frontend mengirimkan array items baru, hapus yang lama dan buat baru (cara termudah untuk draft)
+        if (isset($validated['items'])) {
+            $stockIn->items()->delete(); 
+            foreach ($validated['items'] as $item) {
+                $stockIn->items()->create($item);
+            }
+        }
 
         return response()->json([
             'message' => 'Draft berhasil diperbarui',
-            'data'    => $stockIn
+            'data'    => $stockIn->load('items.rawMaterial')
         ]);
-    }
+    });
+    }   
 
     /**
      * DELETE: Soft Delete

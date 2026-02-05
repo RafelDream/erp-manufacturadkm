@@ -1,23 +1,64 @@
 <?php
 
 namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Product;
-use App\Models\StockTransfer;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Warehouse;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class StockTransferItem extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'stock_transfer_id','product_id','quantity'
+        'stock_transfer_id',
+        'itemable_id',
+        'itemable_type',
+        'quantity',
     ];
-    public function stockTransfer() {
+
+    protected $casts = [
+        'quantity' => 'float',
+    ];
+
+    /**
+     * Relasi polymorphic ke Product atau RawMaterial.
+     */
+    public function itemable(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    /**
+     * Relasi ke Product.
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Relasi ke Raw Material.
+     */
+    public function rawMaterial(): BelongsTo
+    {
+        return $this->belongsTo(RawMaterial::class);
+    }
+
+    /**
+     * Relasi ke Dokumen Transfer.
+     */
+    public function stockTransfer(): BelongsTo
+    {
         return $this->belongsTo(StockTransfer::class);
     }
-    public function product() {
-        return $this->belongsTo(Product::class);
+
+    /**
+     * Accessor untuk mendapatkan nama item secara dinamis.
+     */
+    public function getItemNameAttribute(): string
+    {
+        return $this->itemable->name ?? 'Unknown Item';
     }
 }

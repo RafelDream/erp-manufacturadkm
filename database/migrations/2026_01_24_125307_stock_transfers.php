@@ -21,8 +21,8 @@ return new class extends Migration
             $table->date('transfer_date');
             $table->enum('status', ['draft','approved','rejected','executed'])->default('draft');
             $table->text('notes')->nullable();
-            $table->foreignId('created_by')->nullable();
-            $table->foreignId('approved_by')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users');
+            $table->foreignId('approved_by')->nullable()->constrained('users');
             $table->timestamps();
             $table->softDeletes();
             });

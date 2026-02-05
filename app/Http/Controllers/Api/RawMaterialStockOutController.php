@@ -147,6 +147,10 @@ class RawMaterialStockOutController extends Controller
 
         $stockOut->update($validated);
 
+        if ($request->has('items')) {
+            $stockOut->items()->delete(); // Hapus item lama
+            $stockOut->items()->createMany($request->items); // Masukkan item baru yang sudah diedit
+        }
         return response()->json(['message' => 'Data Barang Keluar berhasil di Update', 'data' => $stockOut]);
     }
 

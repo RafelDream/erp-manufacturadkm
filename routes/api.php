@@ -28,6 +28,8 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\PurchaseOrderItemController;
 
+use App\Http\Controllers\Api\InventoryReportController;
+
 /*
 |--------------------------------------------------------------------------
 | API V1
@@ -109,6 +111,15 @@ Route::prefix('v1')->group(function () {
             Route::post('approve', [StockRequestApprovalController::class, 'approve']);
             Route::post('reject', [StockRequestApprovalController::class, 'reject']);
         });
+
+         /*
+        |--------------------------------------------------------------------------
+        | Kartu Persediaan
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get('/inventory/products', [InventoryReportController::class, 'product']);
+        Route::get('/inventory/raw-materials', [InventoryReportController::class, 'rawMaterial']);
 
         /*
         |--------------------------------------------------------------------------
