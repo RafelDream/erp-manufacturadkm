@@ -164,4 +164,165 @@ class InventoryReportController extends Controller
             ],  
         ]);
     }
+
+    /**
+     * Laporan Detail Barang Masuk
+     */
+    public function incomingGoodsLog(Request $request): JsonResponse
+    {
+        $start  = $request->start_date;
+        $end    = $request->end_date;
+        $search = $request->search;
+
+        // 1. Query Barang Masuk dari Produk
+        $productIncoming = DB::table('stock_movements')
+            ->join('products', 'stock_movements.product_id', '=', 'products.id')
+            ->select(
+                'stock_movements.reference_id as no_dokumen', // No Dokumen
+                'stock_movements.created_at as tanggal',      // Tanggal
+                'products.kode as kode_barang',               // Kode Barang
+                'products.name as nama_barang',               // Nama Barang
+                'stock_movements.quantity as qty',            // Qty
+                DB::raw("'Product' as tipe_barang")
+            )
+            ->where('stock_movements.type', 'in');
+
+        // 2. Query Barang Masuk dari Bahan Baku
+        $rawIncoming = DB::table('raw_material_stock_movements')
+            ->join('raw_materials', 'raw_material_stock_movements.raw_material_id', '=', 'raw_materials.id')
+            ->select(
+                'raw_material_stock_movements.reference_id as no_dokumen',
+                'raw_material_stock_movements.created_at as tanggal',
+                'raw_materials.code as kode_barang',
+                'raw_materials.name as nama_barang',
+                'raw_material_stock_movements.quantity as qty',
+                DB::raw("'RawMaterial' as tipe_barang")
+            )
+            ->where('raw_material_stock_movements.movement_type', 'IN');
+
+        // Gabungkan menggunakan UNION
+        $query = DB::table(DB::raw("({$productIncoming->toSql()}) as combined"))
+            ->mergeBindings($productIncoming)
+            ->union($rawIncoming);
+
+        // Filter Tanggal jika ada 
+        if ($start && $end) {
+            $query->whereBetween('tanggal', [$start . ' 00:00:00', $end . ' 23:59:59']);
+        }
+
+        // Filter Pencarian (Nama Barang atau Kode)
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama_barang', 'like', "%{$search}%")
+                  ->orWhere('kode_barang', 'like', "%{$search}%");
+            });
+        }
+
+        $data = $query->orderBy('tanggal', 'desc')->get();
+
+        // Transformasi data untuk memastikan tipe data numerik
+        $groupedData = $data->groupBy(function($item) {
+            return \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d');
+        })->map(function($dateGroup) {
+            return $dateGroup->groupBy('tipe_barang')->map(function($categoryGroup) {
+                return [
+                    'items' => $categoryGroup->values(), // values() untuk mereset index array agar rapi di JSON
+                    'sub_total_qty' => (float) $categoryGroup->sum('qty')
+                ];
+            });
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $groupedData,
+            'meta'   => [
+                'start_date' => $request->start_date,
+                'end_date'   => $request->end_date,
+                'grand_total_qty' => (float) $data->sum('qty'), // Untuk baris "Total"
+            ],
+        ]);
+    }
+
+    /**
+     * Laporan Detail Barang Keluar 
+     */
+    public function outgoingGoodsLog(Request $request): JsonResponse
+    {
+        $start  = $request->start_date;
+        $end    = $request->end_date;
+        $search = $request->search;
+
+        // 1. Query Barang Keluar dari Produk
+        $productOutgoing = DB::table('stock_movements')
+            ->join('products', 'stock_movements.product_id', '=', 'products.id')
+            ->leftJoin('users', 'stock_movements.created_by', '=', 'users.id')
+            ->select(
+                'stock_movements.reference_id as no_dokumen',
+                'stock_movements.created_at as tanggal',
+                'users.name as nama_pengambil',               // Mengambil nama user penginput
+                'products.kode as kode_barang',
+                'products.name as nama_barang',
+                'stock_movements.quantity as qty',
+                DB::raw("'Product' as tipe_barang")
+            )
+            ->where('stock_movements.type', 'out');
+
+        // 2. Query Barang Keluar dari Bahan Baku
+        $rawOutgoing = DB::table('raw_material_stock_movements')
+            ->join('raw_materials', 'raw_material_stock_movements.raw_material_id', '=', 'raw_materials.id')
+            ->leftJoin('users', 'raw_material_stock_movements.created_by', '=', 'users.id')
+            ->select(
+                'raw_material_stock_movements.reference_id as no_dokumen',
+                'raw_material_stock_movements.created_at as tanggal',
+                'users.name as nama_pengambil',
+                'raw_materials.code as kode_barang',
+                'raw_materials.name as nama_barang',
+                'raw_material_stock_movements.quantity as qty',
+                DB::raw("'RawMaterial' as tipe_barang")
+            )
+            ->whereIn('raw_material_stock_movements.movement_type', ['OUT', 'TRANSFER_OUT']);
+
+        // Gabungkan menggunakan UNION
+        $query = DB::table(DB::raw("({$productOutgoing->toSql()}) as combined"))
+            ->mergeBindings($productOutgoing)
+            ->union($rawOutgoing);
+
+        // Filter Tanggal
+        if ($start && $end) {
+            $query->whereBetween('tanggal', [$start . ' 00:00:00', $end . ' 23:59:59']);
+        }
+
+        // Filter Pencarian
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama_barang', 'like', "%{$search}%")
+                  ->orWhere('kode_barang', 'like', "%{$search}%")
+                  ->orWhere('no_dokumen', 'like', "%{$search}%");
+            });
+        }
+
+        $data = $query->orderBy('tanggal', 'desc')->get();
+
+        // Pastikan qty dalam format numerik
+        $groupedData = $data->groupBy(function($item) {
+            return \Carbon\Carbon::parse($item->tanggal)->format('Y-m-d');
+        })->map(function($dateGroup) {
+            return $dateGroup->groupBy('tipe_barang')->map(function($categoryGroup) {
+                return [
+                    'items' => $categoryGroup->values(),
+                    'sub_total_qty' => (float) $categoryGroup->sum('qty')
+                ];
+            });
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $groupedData,
+            'meta'   => [
+                'start_date' => $request->start_date,
+                'end_date'   => $request->end_date,
+                'grand_total_qty' => (float) $data->sum('qty'),
+            ],
+        ]);
+    }
 }

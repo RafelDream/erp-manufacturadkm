@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\StockAdjustmentController;
 
 use App\Http\Controllers\Api\StockRequestController;
 use App\Http\Controllers\Api\StockRequestApprovalController;
+use App\Http\Controllers\Api\StockMovementController;
 
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RawMaterialStockInController;
@@ -116,6 +117,15 @@ Route::prefix('v1')->group(function () {
             Route::post('reject', [StockRequestApprovalController::class, 'reject']);
         });
 
+        /*
+        |--------------------------------------------------------------------------
+        | Stock Movement Product & Raw Material
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/stock-tracking', [StockMovementController::class, 'index']);
+        Route::get('/stock-summary', [StockMovementController::class, 'getStockSummary']);
+        Route::post('/stock-movements', [StockMovementController::class, 'store']);
+
          /*
         |--------------------------------------------------------------------------
         | Kartu Persediaan
@@ -124,6 +134,9 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/inventory/products', [InventoryReportController::class, 'product']);
         Route::get('/inventory/raw-materials', [InventoryReportController::class, 'rawMaterial']);
+        Route::get('/inventory/incoming-report', [InventoryReportController::class, 'incomingGoodslog']);
+        Route::get('/inventory/outgoing-report', [InventoryReportController::class, 'outgoingGoodslog']);
+
 
         /*
         |--------------------------------------------------------------------------
