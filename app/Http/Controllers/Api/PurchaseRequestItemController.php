@@ -13,6 +13,14 @@ class PurchaseRequestItemController extends Controller
     /**
      * Add items to PR (only DRAFT)
      */
+    Public function index($purchaseRequestId)
+    {
+        $items = PurchaseRequestItem::with(['rawMaterial', 'product', 'unit'])
+            ->where('purchase_request_id', $purchaseRequestId)
+            ->get();
+
+        return response()->json($items);
+    } 
     public function store(Request $request)
     {
         $validated = $request->validate([
