@@ -9,6 +9,9 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\WarehouseController;
 
+use App\Http\Controllers\Api\ChartOfAccountController;
+use App\Http\Controllers\Api\InitialBalanceController;
+
 use App\Http\Controllers\Api\StockOutController;
 use App\Http\Controllers\Api\StockInitialController;
 use App\Http\Controllers\Api\StockTransferController;
@@ -227,34 +230,74 @@ Route::prefix('v1')->group(function () {
         // Helper Endpoints
         Route::get('/invoice-receipts-helpers/eligible-pos', [InvoiceReceiptController::class, 'getEligiblePurchaseOrders']);
         Route::get('/invoice-receipts/{id}/summary', [InvoiceReceiptController::class, 'getSummary']);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Laporan Pembelian 
+        |--------------------------------------------------------------------------
+        */
+    Route::prefix('reports/supplier-purchase')->group(function () {
+        Route::get('/supplier', [SupplierPurchaseReportController::class, 'index']);
+        Route::get('/{supplierId}/detail', [SupplierPurchaseReportController::class, 'detail']);
+        Route::get('/{supplierId}/top-items', [SupplierPurchaseReportController::class, 'topItems']);
+        Route::get('/performance', [SupplierPurchaseReportController::class, 'performance']);
+        Route::get('/{supplierId}/monthly-trend', [SupplierPurchaseReportController::class, 'monthlyTrend']);
+});
+    Route::prefix('reports/invoice-receipt')->group(function () {
+        Route::get('/invoice', [InvoiceReceiptReportController::class, 'index']);
+        Route::get('/{receiptId}/detail', [InvoiceReceiptReportController::class, 'detail']);
+        Route::get('/by-supplier', [InvoiceReceiptReportController::class, 'bySupplier']);
+        Route::get('/due-invoices', [InvoiceReceiptReportController::class, 'dueInvoices']);
+        Route::get('/aging', [InvoiceReceiptReportController::class, 'agingReport']);
+        Route::get('/monthly-trend', action: [InvoiceReceiptReportController::class, 'monthlyTrend']);
+        Route::get('/by-requester', [InvoiceReceiptReportController::class, 'byRequester']);
+    });
+    Route::prefix('reports/purchase-return')->group(function () {
+        Route::get('/return', action: [PurchaseReturnReportController::class, 'index']);
+        Route::get('/{returnId}/detail', [PurchaseReturnReportController::class, 'detail']);
+        Route::get('/by-supplier', [PurchaseReturnReportController::class, 'bySupplier']);
+        Route::get('/top-returned-items', [PurchaseReturnReportController::class, 'topReturnedItems']);
+        Route::get('/by-reason', [PurchaseReturnReportController::class, 'byReason']);
+        Route::get('/monthly-trend', [PurchaseReturnReportController::class, 'monthlyTrend']);
+        Route::get('/approval-rate', [PurchaseReturnReportController::class, 'approvalRate']);
     });
 
-    Route::prefix('reports/supplier-purchase')->group(function () {
-    Route::get('/supplier', [SupplierPurchaseReportController::class, 'index']);
-    Route::get('/{supplierId}/detail', [SupplierPurchaseReportController::class, 'detail']);
-    Route::get('/{supplierId}/top-items', [SupplierPurchaseReportController::class, 'topItems']);
-    Route::get('/performance', [SupplierPurchaseReportController::class, 'performance']);
-    Route::get('/{supplierId}/monthly-trend', [SupplierPurchaseReportController::class, 'monthlyTrend']);
-});
-// routes/api.php
-Route::prefix('reports/invoice-receipt')->group(function () {
-    Route::get('/invoice', [InvoiceReceiptReportController::class, 'index']);
-    Route::get('/{receiptId}/detail', [InvoiceReceiptReportController::class, 'detail']);
-    Route::get('/by-supplier', [InvoiceReceiptReportController::class, 'bySupplier']);
-    Route::get('/due-invoices', [InvoiceReceiptReportController::class, 'dueInvoices']);
-    Route::get('/aging', [InvoiceReceiptReportController::class, 'agingReport']);
-    Route::get('/monthly-trend', action: [InvoiceReceiptReportController::class, 'monthlyTrend']);
-    Route::get('/by-requester', [InvoiceReceiptReportController::class, 'byRequester']);
-});
-Route::prefix('reports/purchase-return')->group(function () {
-    Route::get('/return', action: [PurchaseReturnReportController::class, 'index']);
-    Route::get('/{returnId}/detail', [PurchaseReturnReportController::class, 'detail']);
-    Route::get('/by-supplier', [PurchaseReturnReportController::class, 'bySupplier']);
-    Route::get('/top-returned-items', [PurchaseReturnReportController::class, 'topReturnedItems']);
-    Route::get('/by-reason', [PurchaseReturnReportController::class, 'byReason']);
-    Route::get('/monthly-trend', [PurchaseReturnReportController::class, 'monthlyTrend']);
-    Route::get('/approval-rate', [PurchaseReturnReportController::class, 'approvalRate']);
-});
+        /*
+        |--------------------------------------------------------------------------
+        | CHART OF ACCOUNTS
+        |--------------------------------------------------------------------------
+        */
+        // List & Detail
+        Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index']);
+        Route::get('/chart-of-accounts/{id}', [ChartOfAccountController::class, 'show']);
+
+        // CRUD Operations
+        Route::post('/chart-of-accounts', [ChartOfAccountController::class, 'store']);
+        Route::put('/chart-of-accounts/{id}', [ChartOfAccountController::class, 'update']);
+        Route::delete('/chart-of-accounts/{id}', [ChartOfAccountController::class, 'destroy']);
+        Route::post('/chart-of-accounts/{id}/restore', [ChartOfAccountController::class, 'restore']);
+
+        // Helper Endpoints
+        Route::get('/chart-of-accounts/grouped', [ChartOfAccountController::class, 'getGrouped']);
+        Route::get('/chart-of-accounts/cash-accounts', [ChartOfAccountController::class, 'getCashAccounts']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHART OF ACCOUNTS
+        |--------------------------------------------------------------------------
+        */
+        // List & Detail
+        Route::get('/initial-balances', [InitialBalanceController::class, 'index']);
+        Route::get('/initial-balances/years', [InitialBalanceController::class, 'getYears']);
+        Route::get('/initial-balances/{year}', [InitialBalanceController::class, 'show']);
+        // CRUD Operations
+        Route::post('/initial-balances', [InitialBalanceController::class, 'store']);
+        Route::delete('/initial-balances/{year}', [InitialBalanceController::class, 'destroy']);
+        // Approval
+        Route::post('/initial-balances/{year}/approve', [InitialBalanceController::class, 'approve']);
+
+    });
 });
 
 /*
