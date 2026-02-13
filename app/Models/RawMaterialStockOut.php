@@ -21,25 +21,16 @@ class RawMaterialStockOut extends Model
 
     protected $casts = ['issued_at' => 'date',];
 
-    /**
-     * Relasi Gudang asal
-     */
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /**
-     * User pembuat dokumen
-     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Relasi ke item detail
-     */
     public function items()
     {
         return $this->hasMany(RawMaterialStockOutItem::class);

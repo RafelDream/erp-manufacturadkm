@@ -14,13 +14,11 @@ class StockRequestItem extends Model
         'quantity',
     ];
 
-     // Header permintaan
     public function stockRequest()
     {
         return $this->belongsTo(StockRequest::class);
     }
 
-    // Produk yang diminta
     public function product()
     {
         return $this->belongsTo(Product::class);

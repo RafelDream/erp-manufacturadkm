@@ -52,13 +52,11 @@ class PurchaseRequest extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    // ✅ TAMBAHKAN RELASI INI
     public function completer()
     {
         return $this->belongsTo(User::class, 'completed_by');
     }
 
-    // ✅ TAMBAHKAN RELASI INI
     public function purchaseOrder()
     {
         return $this->hasOne(PurchaseOrder::class);

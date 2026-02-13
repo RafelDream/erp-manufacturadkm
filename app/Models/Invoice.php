@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'invoice_receipt_id',
@@ -25,16 +24,13 @@ class Invoice extends Model
         'amount' => 'decimal:2',
     ];
 
-    /**
-     * Relasi ke Invoice Receipt
-     */
     public function invoiceReceipt()
     {
         return $this->belongsTo(InvoiceReceipt::class);
     }
 
     /**
-     * Check if invoice is overdue
+     * Periksa apakah faktur sudah jatuh tempo.
      */
     public function getIsOverdueAttribute()
     {
@@ -42,7 +38,7 @@ class Invoice extends Model
     }
 
     /**
-     * Get days until due date
+     * Dapatkan informasi jumlah hari hingga tanggal jatuh tempo.
      */
     public function getDaysUntilDueAttribute()
     {

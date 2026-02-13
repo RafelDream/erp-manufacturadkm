@@ -213,6 +213,16 @@ class GoodsReceiptController extends Controller
                             'notes' => 'Penerimaan barang dari PO #' . $gr->purchaseOrder->kode,
                             'created_by' => Auth::id(),
                         ]);
+                        
+                        $poItem = $gr->purchaseOrder->items()
+                            ->where('raw_material_id', $item->raw_material_id)
+                            ->first();
+                        
+                        if ($poItem && $poItem->price) {
+                            $item->rawMaterial->update([
+                                'last_purchase_price' => $poItem->price
+                            ]);
+                        }
 
                     } else if ($item->product_id) {
                         // Product Stock

@@ -36,6 +36,11 @@ use App\Http\Controllers\Api\InvoiceReceiptController;
 use App\Http\Controllers\Api\InvoiceReceiptReportController;
 use App\Http\Controllers\Api\PurchaseReturnReportController;
 
+use App\Http\Controllers\Api\BillOfMaterialController;
+use App\Http\Controllers\Api\ProductionOrderController;
+use App\Http\Controllers\Api\ProductionExecutionController;
+
+
 use App\Http\Controllers\Api\InventoryReportController;
 
 /*
@@ -69,6 +74,7 @@ Route::prefix('v1')->group(function () {
         Route::post('warehouses/{id}/restore', [WarehouseController::class, 'restore']);
 
         Route::apiResource('raw-materials', RawMaterialController::class);
+        Route::put('raw-materials/{id}', [RawMaterialController::class, 'update']);
         Route::post('raw-materials/{id}/post', [RawMaterialController::class, 'post']);
         Route::post('raw-materials/{id}/restore', [RawMaterialController::class, 'restore']);
 
@@ -184,13 +190,14 @@ Route::prefix('v1')->group(function () {
         // List & Detail
         Route::get('purchase-returns', [PurchaseReturnController::class, 'index']);
         Route::get('purchase-returns/{id}', [PurchaseReturnController::class, 'show']);
+
         // CRUD
         Route::post('purchase-returns', [PurchaseReturnController::class, 'store']);
         Route::put('purchase-returns/{id}', [PurchaseReturnController::class, 'update']);
         Route::delete('purchase-returns/{id}', [PurchaseReturnController::class, 'destroy']);
         Route::post('purchase-returns/{id}/restore', [PurchaseReturnController::class, 'restore']);
 
-        // Additional Actions
+        // Status Actions
         Route::post('purchase-returns/{id}/submit', [PurchaseReturnController::class, 'submit']);
         Route::post('purchase-returns/{id}/approve', [PurchaseReturnController::class, 'approve']);
         Route::post('purchase-returns/{id}/reject', [PurchaseReturnController::class, 'reject']);
@@ -211,7 +218,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/invoice-receipts', [InvoiceReceiptController::class, 'index']);
         Route::get('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'show']);
         
-        // CRUD Operations
+        // CRUD
         Route::post('/invoice-receipts', [InvoiceReceiptController::class, 'store']);
         Route::put('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'update']);
         Route::delete('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'destroy']);
@@ -265,7 +272,7 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | CHART OF ACCOUNTS
+        | Chart of Accounts
         |--------------------------------------------------------------------------
         */
         // List & Detail
@@ -284,7 +291,7 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | CHART OF ACCOUNTS
+        | initial balances
         |--------------------------------------------------------------------------
         */
         // List & Detail
@@ -296,6 +303,55 @@ Route::prefix('v1')->group(function () {
         Route::delete('/initial-balances/{year}', [InitialBalanceController::class, 'destroy']);
         // Approval
         Route::post('/initial-balances/{year}/approve', [InitialBalanceController::class, 'approve']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Bill of Materials
+        |--------------------------------------------------------------------------
+        */
+        // List & Detail
+        Route::get('/bill-of-materials', [BillOfMaterialController::class, 'index']);
+        Route::get('/bill-of-materials/{id}', [BillOfMaterialController::class, 'show']);
+
+        // CRUD
+        Route::post('/bill-of-materials', [BillOfMaterialController::class, 'store']);
+        Route::put('/bill-of-materials/{id}', [BillOfMaterialController::class, 'update']);
+        Route::delete('/bill-of-materials/{id}', [BillOfMaterialController::class, 'destroy']);
+        Route::post('/bill-of-materials/{id}/restore', [BillOfMaterialController::class, 'restore']);
+
+        // BOM Item Management
+        Route::put('/bill-of-materials/{bomId}/items/{itemId}', [BillOfMaterialController::class, 'updateItem']);
+
+        // Helper
+        Route::get('/bill-of-materials/{id}/calculate-cost', [BillOfMaterialController::class, 'calculateCost']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Production Orders & Execution
+        |--------------------------------------------------------------------------
+        */
+        // List & Detail
+        Route::get('/production-orders', [ProductionOrderController::class, 'index']);
+        Route::get('/production-orders/{id}', [ProductionOrderController::class, 'show']);
+    
+        // CRUD Operations
+        Route::post('/production-orders', [ProductionOrderController::class, 'store']);
+        Route::put('/production-orders/{id}', [ProductionOrderController::class, 'update']);
+        Route::delete('/production-orders/{id}', [ProductionOrderController::class, 'destroy']);
+        Route::post('/production-orders/{id}/restore', [ProductionOrderController::class, 'restore']);
+    
+        // Status Actions
+        Route::post('/production-orders/{id}/release', [ProductionOrderController::class, 'release']);
+
+        // List
+        Route::get('/production-executions', [ProductionExecutionController::class, 'index']);
+    
+        // Execution Actions
+        Route::post('/production-executions/{productionOrderId}/start', [ProductionExecutionController::class, 'start']);
+        Route::post('/production-executions/{productionOrderId}/complete', [ProductionExecutionController::class, 'complete']);
+    
+        // Reports
+        Route::get('/production-executions/{productionOrderId}/report', [ProductionExecutionController::class, 'getReport']);
 
     });
 });
@@ -315,4 +371,6 @@ Route::middleware(['auth:sanctum', 'role:super-admin'])
 
         Route::apiResource('users', UserController::class);
         Route::post('users/{id}/restore', [UserController::class, 'restore']);
+
+        
     });

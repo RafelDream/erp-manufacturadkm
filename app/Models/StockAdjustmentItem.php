@@ -17,18 +17,10 @@ class StockAdjustmentItem extends Model
         'difference',        
     ];
 
-    /**
-     * Relasi ke Header Adjustment
-     */
-
     public function adjustment()
     {
         return $this->belongsTo(StockAdjustment::class, 'stock_adjustment_id');
     }
-
-    /**
-     * Relasi ke Product
-     */
 
     public function product()
     {

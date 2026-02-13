@@ -40,82 +40,52 @@ class PurchaseReturn extends Model
         'completed_at' => 'datetime',
     ];
 
-    /**
-     * Relasi ke Purchase Order
-     */
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class);
     }
 
-    /**
-     * Relasi ke Goods Receipt
-     */
     public function goodsReceipt()
     {
         return $this->belongsTo(GoodsReceipt::class);
     }
 
-    /**
-     * Relasi ke Warehouse
-     */
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    /**
-     * Relasi ke Items
-     */
     public function items()
     {
         return $this->hasMany(PurchaseReturnItem::class);
     }
 
-    /**
-     * Relasi ke Creator
-     */
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Relasi ke Submitter
-     */
     public function submitter()
     {
         return $this->belongsTo(User::class, 'submitted_by');
     }
 
-    /**
-     * Relasi ke Approver
-     */
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    /**
-     * Relasi ke Realizer
-     */
     public function realizer()
     {
         return $this->belongsTo(User::class, 'realized_by');
     }
 
-    /**
-     * Relasi ke Completer
-     */
     public function completer()
     {
         return $this->belongsTo(User::class, 'completed_by');
     }
 
-    /**
-     * Alias untuk poster (compatibility)
-     */
-    public function poster()
+    public function posted()
     {
         return $this->realizer();
     }

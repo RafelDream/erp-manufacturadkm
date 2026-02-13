@@ -35,16 +35,25 @@ class ChartOfAccount extends Model
         return $this->hasMany(InitialBalance::class, 'account_id');
     }
 
+    /**
+     * Filter berdasarkan tipe akun tertentu.
+     */
     public function scopeOfType($query, $type)
     {
         return $query->where('type', $type);
     }
 
+    /**
+     * Mengambil hanya akun kas yang berstatus aktif..
+     */
     public function scopeCashAccounts($query)
     {
         return $query->where('is_cash', true)->where('is_active', true);
     }
 
+    /**
+     * Filter hanya akun yang berstatus aktif.
+     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

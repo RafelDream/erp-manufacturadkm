@@ -4,11 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\PurchaseOrder;
-use App\Models\GoodsReceiptItem;
-use App\Models\Warehouse;
-use App\Models\User;
-
 
 class GoodsReceipt extends Model
 {
@@ -55,7 +50,7 @@ class GoodsReceipt extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function poster()
+    public function posted()
     {
         return $this->belongsTo(User::class, 'posted_by');
     }

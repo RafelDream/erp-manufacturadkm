@@ -3,9 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Product;
-use App\Models\Warehouse;
-use App\Models\User;
 
 class StockMovement extends Model
 {

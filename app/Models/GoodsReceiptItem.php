@@ -3,10 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\GoodsReceipt;
-use App\Models\RawMaterial;
-use App\Models\Product;
-use App\Models\Unit;
 
 class GoodsReceiptItem extends Model
 {

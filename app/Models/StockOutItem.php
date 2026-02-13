@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Product;
-use App\Models\StockOut;
 
 class StockOutItem extends Model
 {

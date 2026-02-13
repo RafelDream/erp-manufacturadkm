@@ -23,33 +23,21 @@ class PurchaseReturnItem extends Model
         'quantity_return' => 'decimal:3',
     ];
 
-    /**
-     * Relasi ke Purchase Return
-     */
     public function purchaseReturn()
     {
         return $this->belongsTo(PurchaseReturn::class);
     }
 
-    /**
-     * Relasi ke Raw Material
-     */
     public function rawMaterial()
     {
         return $this->belongsTo(RawMaterial::class);
     }
 
-    /**
-     * Relasi ke Product
-     */
     public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    /**
-     * Relasi ke Unit
-     */
     public function unit()
     {
         return $this->belongsTo(Unit::class);

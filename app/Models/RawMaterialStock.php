@@ -19,17 +19,11 @@ class RawMaterialStock extends Model
         'status',
     ];
 
-    /**
-     * Relasi ke bahan baku
-     */
     public function rawMaterial()
     {
         return $this->belongsTo(RawMaterial::class);
     }
 
-    /**
-     * Relasi ke gudang
-     */
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);

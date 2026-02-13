@@ -33,6 +33,7 @@ class RawMaterialController extends Controller
             'name'     => 'required|string',
             'category' => 'required|string',
             'unit'     => 'required|string|max:20',
+            'last_purchase_price' => 'nullable|numeric|min:0',
         ]);
 
         $rawMaterial = RawMaterial::create($validated);
@@ -62,6 +63,7 @@ class RawMaterialController extends Controller
             'category' => 'nullable|string',
             'unit'     => 'nullable|string|max:20',
             'is_active'=> 'boolean',
+            'last_purchase_price' => 'nullable|numeric|min:0',
         ]);
 
         $rawMaterial->update($validated);

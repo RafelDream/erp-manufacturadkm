@@ -31,17 +31,11 @@ class RawMaterialStockOutItem extends Model
         );
     }
 
-    /**
-     * Relasi ke bahan baku
-     */
     public function rawMaterial()
     {
         return $this->belongsTo(RawMaterial::class, 'raw_material_id');
     }
     
-    /**
-     * Relasi ke satuan
-     */
     public function unit()
     {
         return $this->belongsTo(Unit::class);

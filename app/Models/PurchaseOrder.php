@@ -4,10 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\PurchaseRequest;
-use App\Models\Supplier;
-use App\Models\User;
-use App\Models\PurchaseOrderItem;
 
 class PurchaseOrder extends Model
 {

@@ -65,7 +65,7 @@ class PurchaseReturnController extends Controller
                 'goodsReceipt',
                 'warehouse',
                 'creator',
-                'poster'
+                'posted'
             ])->findOrFail($id)
         );
     }

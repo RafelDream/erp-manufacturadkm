@@ -18,6 +18,7 @@ class RawMaterial extends Model
         'category',
         'unit',
         'is_active',
+        'last_purchase_price',
     ];
 
     protected $casts = [
@@ -25,12 +26,16 @@ class RawMaterial extends Model
     ];
 
     /**
-     * Relasi ke stok bahan baku
-     * (akan kita buat di raw_material_stocks)
+     * Relasi ke stok bahan baku di buat di raw_material_stocks
      */
     public function stocks()
     {
         return $this->hasMany(RawMaterialStock::class);
+    }
+
+    public function productionUsages()
+    {
+        return $this->hasMany(ProductionMaterialUsage::class);
     }
 
     public function stockMovements()

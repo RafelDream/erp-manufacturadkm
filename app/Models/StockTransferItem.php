@@ -30,25 +30,16 @@ class StockTransferItem extends Model
         return $this->morphTo();
     }
 
-    /**
-     * Relasi ke Product.
-     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    /**
-     * Relasi ke Raw Material.
-     */
     public function rawMaterial(): BelongsTo
     {
         return $this->belongsTo(RawMaterial::class);
     }
 
-    /**
-     * Relasi ke Dokumen Transfer.
-     */
     public function stockTransfer(): BelongsTo
     {
         return $this->belongsTo(StockTransfer::class);
