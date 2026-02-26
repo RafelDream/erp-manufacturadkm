@@ -11,16 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('stock_movements', function (Blueprint $table) {
+        Schema::create('work_orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained();
-            $table->foreignId('warehouse_id')->constrained();
-            $table->enum('type', ['in', 'out', 'adjustment']);
-            $table->decimal('quantity', 15, 2);
-            $table->string('reference_type')->nullable();
-            $table->string('reference_id')->nullable();
+            $table->string('no_wo')->unique();
+            $table->foreignId('sales_order_id')->constrained('sales_orders'); // Referensi ke SPK
+            $table->date('tanggal');
+            $table->enum('status', ['draft', 'processed', 'completed', 'cancelled'])->default('draft');
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -30,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('stock_movements');
+        Schema::dropIfExists('work_orders');
     }
 };

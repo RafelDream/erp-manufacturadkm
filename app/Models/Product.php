@@ -15,6 +15,7 @@ class Product extends Model
         'name',
         'unit_id',
         'tipe',
+        'stock',
         'volume',
         'harga',
         'is_returnable',
@@ -41,4 +42,15 @@ class Product extends Model
     {
         return $this->hasMany(StockAdjustmentItem::class);
     }
+
+    public function deliveryOrderItems()
+    {
+        return $this->hasMany(DeliveryOrderItem::class, 'product_id');
+    }
+
+    public function returnItems()
+    {
+        return $this->hasMany(SalesReturnItem::class);
+    }
+
 }

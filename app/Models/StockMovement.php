@@ -35,4 +35,9 @@ class StockMovement extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function deliveryOrder()
+    {
+        return $this->belongsTo(DeliveryOrder::class, 'reference_id', 'no_sj');
+    }
 }

@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('products', function (Blueprint $table) {
+        Schema::create('customers', function (Blueprint $table) {
             $table->id();
-            $table->string('kode')->unique();
+            $table->string('kode_customer')->unique(); // Contoh: CUST-001
             $table->string('name');
-            $table->foreignId('unit_id')->constrained('units');
-            $table->string('tipe');
-            $table->integer('stock')->default(0);
-            $table->decimal('volume', 8, 2)->nullable(); 
-            $table->boolean('is_returnable')->default(false);
-            $table->decimal('harga', 15, 2)->default(0);
+            $table->string('phone')->nullable();
+            $table->text('address'); // Alamat utama untuk Surat Jalan
+            $table->string('city')->nullable();
+            $table->enum('type', ['distributor', 'agent', 'retail'])->default('retail');
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
             $table->softDeletes();
+            $table->timestamps();
         });
     }
 
@@ -32,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('products');
+        Schema::dropIfExists('customers');
     }
 };

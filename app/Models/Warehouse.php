@@ -32,6 +32,11 @@ class Warehouse extends Model
         return $this->hasMany(RawMaterialStock::class);
     }
 
+    public function deliveryOrders()
+    {
+        return $this->hasMany(DeliveryOrder::class, 'warehouse_id');
+    }
+
     protected $casts = [
         'is_active' => 'boolean',
     ];

@@ -40,6 +40,15 @@ use App\Http\Controllers\Api\BillOfMaterialController;
 use App\Http\Controllers\Api\ProductionOrderController;
 use App\Http\Controllers\Api\ProductionExecutionController;
 
+use App\Http\Controllers\Api\SalesQuotationController;
+use App\Http\Controllers\Api\DeliveryOrderController;
+use App\Http\Controllers\Api\SalesOrderController;
+use App\Http\Controllers\Api\WorkOrderController;
+use App\Http\Controllers\Api\DeliveryAssignmentController;
+use App\Http\Controllers\Api\SalesInvoiceController;
+use App\Http\Controllers\Api\SalesReturnController;
+
+
 
 use App\Http\Controllers\Api\InventoryReportController;
 
@@ -347,6 +356,94 @@ Route::prefix('v1')->group(function () {
     
         // Reports
         Route::get('/production-executions/{productionOrderId}/report', [ProductionExecutionController::class, 'getReport']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penjualan
+        |--------------------------------------------------------------------------
+        */
+
+        /*
+        |--------------------------------------------------------------------------
+        | Penawaran Penjualan (Sales Quotation)
+        |--------------------------------------------------------------------------
+        */
+        // routes/api.php
+        Route::apiResource('sales-quotations', SalesQuotationController::class);
+        Route::post('sales-quotations/{id}/convert', [SalesQuotationController::class, 'convertToSpk']);
+        Route::patch('sales-quotations/{id}/status', [SalesQuotationController::class, 'updateStatus']);
+        Route::post('sales-quotations/{id}/restore', [SalesQuotationController::class, 'restore']);
+    
+        /*
+        |--------------------------------------------------------------------------
+        | DELIVERY ORDER (SURAT JALAN)
+        |--------------------------------------------------------------------------
+        */
+        Route::post('delivery-orders/{id}/send', [DeliveryOrderController::class, 'sendOrder']);
+        Route::apiResource('delivery-orders', DeliveryOrderController::class);
+        Route::post('delivery-orders/{id}/restore', [DeliveryOrderController::class, 'restore']);
+        Route::post('delivery-orders/{id}/confirm-received', [DeliveryOrderController::class, 'confirmReceived']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sales Order (Surat Pemesanan Konsumen)
+        |--------------------------------------------------------------------------
+        */
+        Route::apiResource('sales-orders', SalesOrderController::class);
+        Route::post('sales-orders/{id}/restore', [SalesOrderController::class, 'restore']);
+        Route::get('sales-orders/{id}/outstanding', [SalesOrderController::class, 'getOutstandingItems']);
+        Route::get('sales-orders/{id}/print', [App\Http\Controllers\Api\SalesOrderController::class, 'printPdf']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Work Order 
+        |--------------------------------------------------------------------------
+        */
+        // routes/api.php
+        Route::get('work-orders/pull-spk/{id}', [WorkOrderController::class, 'getSpkItems']);
+        Route::apiResource('work-orders', WorkOrderController::class);
+        Route::post('work-orders/{id}/restore', [WorkOrderController::class, 'restore']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | SPKP (Surat Perintah Kerja Pengiriman)
+        |--------------------------------------------------------------------------
+        */
+
+        Route::apiResource('delivery-assignments', DeliveryAssignmentController::class);
+        Route::get('delivery-assignments/pull-wo/{id}', [DeliveryAssignmentController::class, 'getWoDetails']);
+        Route::put('delivery-assignments/{id}/status', [DeliveryAssignmentController::class, 'updateStatus']);
+        Route::post('delivery-assignments/{id}/restore', [DeliveryAssignmentController::class, 'restore']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sales Invoice (Struk Penjualan)
+        |--------------------------------------------------------------------------
+        */
+        // --- 1. Endpoint Khusus Piutang & Sampah ---
+        Route::get('sales-invoices/pending-payments', [SalesInvoiceController::class, 'getPendingPayments']);
+        Route::get('sales-invoices/trash', [SalesInvoiceController::class, 'trash']);
+        Route::post('sales-invoices/{id}/return-gallon', [SalesInvoiceController::class, 'returnGallon']);
+        Route::post('sales-invoices/{id}/restore', [SalesInvoiceController::class, 'restore']);
+        Route::delete('sales-invoices/{id}/force-delete', [SalesInvoiceController::class, 'forceDelete']);
+        // --- 2. Endpoint Proses Pembayaran & Penagihan ---
+        Route::post('sales-invoices/{id}/installment', [SalesInvoiceController::class, 'payInstallment']);
+        Route::post('sales-invoices/{id}/pay-remainder', [SalesInvoiceController::class, 'payRemainder']);
+        
+        Route::apiResource('sales-invoices', SalesInvoiceController::class);
+
+        // --- 3. Endpoint Khusus Cetak Pdf ---
+        Route::get('sales-invoices/{id}/print', [SalesInvoiceController::class, 'downloadPDF']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sales Return (Retur Product)
+        |--------------------------------------------------------------------------
+        */
+        Route::apiResource('sales-returns', SalesReturnController::class);
+        Route::post('sales-returns/{id}/restore', [SalesReturnController::class, 'restore']);
+        Route::get('sales-returns/{id}/print', [SalesReturnController::class, 'printPdf']);
+
 
     });
 });
