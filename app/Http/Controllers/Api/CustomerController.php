@@ -56,7 +56,6 @@ class CustomerController extends Controller
         return response()->json(['success' => false, 'message' => 'Customer tidak ditemukan'], 404);
     }
 
-    // Validasi input (opsional tapi disarankan)
     $request->validate([
         'name' => 'sometimes|required|string|max:255',
         'address' => 'sometimes|required|string',
@@ -80,7 +79,6 @@ class CustomerController extends Controller
             return response()->json(['success' => false, 'message' => 'Not Found'], 404);
         }
 
-        // MENGGUNAKAN delete() agar kolom deleted_at terisi jam & tanggal
         $customer->delete(); 
         
         return response()->json([
@@ -89,10 +87,8 @@ class CustomerController extends Controller
         ]);
     }
 
-    // Mencari data yang sudah di-soft delete
     public function restore($id)
     {
-        // Mencari data di sampah (yang deleted_at nya TIDAK null)
         $customer = Customer::onlyTrashed()->find($id);
 
         if (!$customer) {
@@ -102,7 +98,6 @@ class CustomerController extends Controller
             ], 404);
         }
 
-        // Kembalikan data
         $customer->restore(); 
 
         return response()->json([

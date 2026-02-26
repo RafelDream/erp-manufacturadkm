@@ -111,7 +111,7 @@ class WorkOrderController extends Controller
 
     public function getSpkItems($id)
     {
-    $spk = \App\Models\SalesOrder::withTrashed()->with('items.product')->find($id);
+    $spk = SalesOrder::withTrashed()->with('items.product')->find($id);
 
     if (!$spk) {
         return response()->json([

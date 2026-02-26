@@ -50,7 +50,7 @@ class InitialBalanceController extends Controller
     }
 
     /**
-     * POST - Create/Update Saldo Awal for a Year
+     * POST - Create/Update Saldo Awal
      */
     public function store(Request $request)
     {
@@ -62,7 +62,6 @@ class InitialBalanceController extends Controller
             'items.*.credit' => 'required|numeric|min:0',
         ]);
 
-        // Check if already has approved balance for this year
         $existing = InitialBalance::where('year', $validated['year'])
             ->where('status', 'approved')
             ->first();
@@ -75,12 +74,10 @@ class InitialBalanceController extends Controller
 
         try {
             DB::transaction(function () use ($validated) {
-                // Delete existing draft for this year
                 InitialBalance::where('year', $validated['year'])
                     ->where('status', 'draft')
                     ->delete();
 
-                // Create new balances
                 foreach ($validated['items'] as $item) {
                     InitialBalance::create([
                         'year' => $validated['year'],

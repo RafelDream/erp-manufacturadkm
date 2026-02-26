@@ -47,14 +47,12 @@ class PurchaseOrderController extends Controller
     {
         $pr = PurchaseRequest::with('items')->findOrFail($prId);
 
-        // ✅ CEK STATUS APPROVED
         if ($pr->status !== 'approved') {
             return response()->json([
                 'message' => 'Hanya PR yang APPROVED yang bisa dibuat PO'
             ], 422);
         }
 
-        // ✅ CEK APAKAH SUDAH PERNAH DIBUAT PO
         if ($pr->completed_at || PurchaseOrder::where('purchase_request_id', $pr->id)->exists()) {
             return response()->json([
                 'message' => 'PO dari PR ini sudah pernah dibuat'
@@ -81,7 +79,6 @@ class PurchaseOrderController extends Controller
                     ]);
                 }
 
-                // ✅ UPDATE STATUS PR MENJADI COMPLETED
                 $pr->update([
                     'status' => 'completed',
                     'completed_at' => now(),
@@ -137,7 +134,6 @@ class PurchaseOrderController extends Controller
     {
         $item = PurchaseOrderItem::findOrFail($itemId);
 
-        // ✅ CEK APAKAH PO MASIH DRAFT
         if ($item->purchaseOrder->status !== 'draft') {
             return response()->json([
                 'message' => 'Hanya item PO DRAFT yang bisa diupdate'
@@ -171,14 +167,12 @@ class PurchaseOrderController extends Controller
             ], 422);
         }
 
-        // ✅ VALIDASI SUPPLIER WAJIB
         if (!$po->supplier_id) {
             return response()->json([
                 'message' => 'Supplier wajib diisi sebelum submit'
             ], 422);
         }
 
-        // ✅ VALIDASI SEMUA ITEM HARUS PUNYA HARGA
         $itemsWithoutPrice = $po->items()->whereNull('price')->count();
         if ($itemsWithoutPrice > 0) {
             return response()->json([

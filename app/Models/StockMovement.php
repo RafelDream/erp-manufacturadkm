@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+use function Symfony\Component\String\u;
+
 class StockMovement extends Model
 {
     protected $fillable = [
@@ -11,6 +13,8 @@ class StockMovement extends Model
         'warehouse_id',
         'type',
         'quantity',
+        'unit_price', 
+        'total_price',
         'reference_type',
         'reference_id',
         'notes',
@@ -19,6 +23,8 @@ class StockMovement extends Model
 
     protected $casts = [
         'quantity' => 'decimal:2',
+        'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2',
     ];
 
     public function product()

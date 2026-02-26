@@ -47,10 +47,10 @@ class DeliveryOrderController extends Controller
 
         return DB::transaction(function () use ($request) {
             $spkp = DeliveryAssignment::with(['workOrder.salesOrder.items', 'workOrder.salesOrder.customer'])->find($request->delivery_assignment_id);
-            // 1. Generate No Dokumen Otomatis
+            // Generate No Dokumen Otomatis
             $noSj = 'SJ-' . date('Ymd') . '-' . strtoupper(Str::random(4));
 
-            // 2. Simpan Header (Data Dokumen)
+            //Simpan Header (Data Dokumen)
             $do = DeliveryOrder::create([
                 'no_sj'                  => $noSj,
                 'delivery_assignment_id' => $request->delivery_assignment_id,

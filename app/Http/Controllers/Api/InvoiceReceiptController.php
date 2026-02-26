@@ -375,7 +375,7 @@ class InvoiceReceiptController extends Controller
         $grandTotal = $items->sum('subtotal');
 
         return response()->json([
-            // ── Header Invoice ──────────────────────────────────────
+            //  Header Invoice 
             'invoice' => [
                 'invoice_number'  => $invoice?->invoice_number,
                 'invoice_date'    => $invoice?->invoice_date,
@@ -383,7 +383,7 @@ class InvoiceReceiptController extends Controller
                 'amount'          => (float) ($invoice?->amount ?? 0),
             ],
 
-            // ── Tanda Terima Faktur ─────────────────────────────────
+            //  Tanda Terima Faktur
             'receipt' => [
                 'receipt_number'   => $receipt->receipt_number,
                 'transaction_date' => $receipt->transaction_date,
@@ -395,13 +395,13 @@ class InvoiceReceiptController extends Controller
                 'approved_at'      => $receipt->approved_at,
             ],
 
-            // ── Purchase Order ──────────────────────────────────────
+            // Purchase Order 
             'purchase_order' => [
                 'kode'       => $po->kode,
                 'order_date' => $po->order_date,
             ],
 
-            // ── Supplier ────────────────────────────────────────────
+            //  Supplier 
             'supplier' => [
                 'name'    => $supplier?->name,
                 'code'    => $supplier?->code,
@@ -410,7 +410,7 @@ class InvoiceReceiptController extends Controller
                 'email'   => $supplier?->email,
             ],
 
-            // ── List Barang ─────────────────────────────────────────
+            // List Barang 
             'items'       => $items,
             'grand_total' => $grandTotal,
         ]);

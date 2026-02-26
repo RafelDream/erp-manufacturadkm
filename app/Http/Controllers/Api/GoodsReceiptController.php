@@ -111,9 +111,13 @@ class GoodsReceiptController extends Controller
                     'created_by' => Auth::id(),
                 ]);
 
-                // Create GR Items
+                // Create GR Items WITH PRICE from PO
                 foreach ($validated['items'] as $itemData) {
                     $poItem = $po->items()->findOrFail($itemData['purchase_order_item_id']);
+                    
+                    // ✅ Calculate price
+                    $unitPrice = $poItem->price ?? 0;
+                    $totalPrice = $itemData['quantity_received'] * $unitPrice;
 
                     $gr->items()->create([
                         'raw_material_id' => $poItem->raw_material_id,
@@ -123,6 +127,8 @@ class GoodsReceiptController extends Controller
                         'quantity_received' => $itemData['quantity_received'],
                         'quantity_remaining' => $poItem->quantity - $itemData['quantity_received'],
                         'quantity_actual' => $itemData['quantity_received'], // Default sama dengan received
+                        'unit_price' => $unitPrice, 
+                        'total_price' => $totalPrice,
                         'notes' => $itemData['notes'] ?? null,
                     ]);
                 }
@@ -172,11 +178,11 @@ class GoodsReceiptController extends Controller
     }
 
     /**
-     * POST - Post LPB (update stock)
+     * POST - Post LPB (update stock WITH PRICE TRACKING)
      */
     public function post($id)
     {
-        $gr = GoodsReceipt::with('items', 'purchaseOrder')->findOrFail($id);
+        $gr = GoodsReceipt::with('items.rawMaterial', 'purchaseOrder.items')->findOrFail($id);
 
         if ($gr->status !== 'draft') {
             return response()->json([
@@ -188,7 +194,14 @@ class GoodsReceiptController extends Controller
             DB::transaction(function () use ($gr) {
                 foreach ($gr->items as $item) {
                     $quantity = $item->quantity_actual; // Gunakan qty actual setelah QC
+                    $unitPrice = $item->unit_price; 
+                    $totalPrice = $quantity * $unitPrice;
 
+                    if ($quantity < 0) {
+                            $itemName = $item->rawMaterial->name ?? $item->product->name ?? 'Unknown Item';
+                            throw new \Exception("Quantity actual tidak boleh negative untuk item {$itemName}");
+                        }
+                        
                     // Update stock & movement berdasarkan tipe (raw_material atau product)
                     if ($item->raw_material_id) {
                         // Raw Material Stock
@@ -202,25 +215,24 @@ class GoodsReceiptController extends Controller
 
                         $stock->increment('quantity', $quantity);
 
-                        // Movement untuk raw material
+                        // Movement untuk raw material WITH PRICE
                         RawMaterialStockMovement::create([
                             'raw_material_id' => $item->raw_material_id,
                             'warehouse_id' => $gr->warehouse_id,
                             'movement_type' => 'IN',
                             'quantity' => $quantity,
+                            'unit_price' => $unitPrice,
+                            'total_price' => $totalPrice, 
                             'reference_type' => GoodsReceipt::class,
                             'reference_id' => $gr->id,
                             'notes' => 'Penerimaan barang dari PO #' . $gr->purchaseOrder->kode,
                             'created_by' => Auth::id(),
                         ]);
                         
-                        $poItem = $gr->purchaseOrder->items()
-                            ->where('raw_material_id', $item->raw_material_id)
-                            ->first();
-                        
-                        if ($poItem && $poItem->price) {
+                        // ✅ Update last_purchase_price
+                        if ($unitPrice > 0) {
                             $item->rawMaterial->update([
-                                'last_purchase_price' => $poItem->price
+                                'last_purchase_price' => $unitPrice
                             ]);
                         }
 
@@ -236,12 +248,14 @@ class GoodsReceiptController extends Controller
 
                         $stock->increment('quantity', $quantity);
 
-                        // Movement untuk product
+                        // ✅ Movement untuk product WITH PRICE
                         StockMovement::create([
                             'product_id' => $item->product_id,
                             'warehouse_id' => $gr->warehouse_id,
                             'type' => 'in',
                             'quantity' => $quantity,
+                            'unit_price' => $unitPrice, 
+                            'total_price' => $totalPrice, 
                             'reference_type' => 'goods_receipt',
                             'reference_id' => $gr->id,
                             'notes' => 'Penerimaan barang dari PO #' . $gr->purchaseOrder->kode,
@@ -262,7 +276,7 @@ class GoodsReceiptController extends Controller
             });
 
             return response()->json([
-                'message' => 'LPB berhasil diposting dan stock diupdate'
+                'message' => 'LPB berhasil diposting dan stock diupdate dengan harga'
             ]);
 
         } catch (\Exception $e) {

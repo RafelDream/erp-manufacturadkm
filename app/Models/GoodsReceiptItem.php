@@ -15,6 +15,8 @@ class GoodsReceiptItem extends Model
         'quantity_received',
         'quantity_remaining',
         'quantity_actual',
+        "unit_price",
+        "total_price",
         'notes',
     ];
 
@@ -23,6 +25,8 @@ class GoodsReceiptItem extends Model
         'quantity_received' => 'decimal:3',
         'quantity_remaining' => 'decimal:3',
         'quantity_actual' => 'decimal:3',
+        'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2',
     ];
 
     public function goodsReceipt()

@@ -32,7 +32,6 @@ class DeliveryAssignmentController extends Controller
         ]);
     }
 
-
     public function index(Request $request)
     {
         $data = DeliveryAssignment::with(['workOrder.salesOrder.customer'])
@@ -55,7 +54,6 @@ class DeliveryAssignmentController extends Controller
         ]);
 
         $noSpkp = 'SPKP-' . date('Ymd') . '-' . strtoupper(Str::random(4));
-
         $spkp = DeliveryAssignment::create([
             'no_spkp' => $noSpkp,
             'work_order_id' => $request->work_order_id,
