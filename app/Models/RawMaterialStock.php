@@ -28,4 +28,11 @@ class RawMaterialStock extends Model
     {
         return $this->belongsTo(Warehouse::class);
     }
+
+        public function stockIn()
+    {
+        return $this->belongsTo(RawMaterialStockIn::class);
+    }
+    
 }
+

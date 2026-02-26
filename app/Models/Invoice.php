@@ -14,14 +14,14 @@ class Invoice extends Model
         'invoice_number',
         'invoice_date',
         'due_date',
-        'amount',
+        'amount', 
         'notes',
     ];
 
     protected $casts = [
         'invoice_date' => 'date',
-        'due_date' => 'date',
-        'amount' => 'decimal:2',
+        'due_date'     => 'date',
+        'amount'       => 'decimal:2',
     ];
 
     public function invoiceReceipt()
@@ -38,7 +38,7 @@ class Invoice extends Model
     }
 
     /**
-     * Dapatkan informasi jumlah hari hingga tanggal jatuh tempo.
+     * Dapatkan jumlah hari hingga tanggal jatuh tempo (negatif = sudah lewat).
      */
     public function getDaysUntilDueAttribute()
     {

@@ -51,7 +51,7 @@ use App\Http\Controllers\Api\InventoryReportController;
 Route::prefix('v1')->group(function () {
 
     Route::post('/login', [AuthController::class, 'login']);
-
+    Route::get('/invoice-receipts/{id}/print', [InvoiceReceiptController::class, 'print']);
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -217,23 +217,18 @@ Route::prefix('v1')->group(function () {
         // List & Detail
         Route::get('/invoice-receipts', [InvoiceReceiptController::class, 'index']);
         Route::get('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'show']);
-        
+
         // CRUD
         Route::post('/invoice-receipts', [InvoiceReceiptController::class, 'store']);
         Route::put('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'update']);
         Route::delete('/invoice-receipts/{id}', [InvoiceReceiptController::class, 'destroy']);
         Route::post('/invoice-receipts/{id}/restore', [InvoiceReceiptController::class, 'restore']);
-        
-        // Invoice Management
-        Route::post('/invoice-receipts/{id}/invoices', [InvoiceReceiptController::class, 'addInvoice']);
-        Route::put('/invoice-receipts/{receiptId}/invoices/{invoiceId}', [InvoiceReceiptController::class, 'updateInvoice']);
-        Route::delete('/invoice-receipts/{receiptId}/invoices/{invoiceId}', [InvoiceReceiptController::class, 'removeInvoice']);
-        
+
         // Status Actions
         Route::post('/invoice-receipts/{id}/submit', [InvoiceReceiptController::class, 'submit']);
         Route::post('/invoice-receipts/{id}/approve', [InvoiceReceiptController::class, 'approve']);
         Route::post('/invoice-receipts/{id}/reject', [InvoiceReceiptController::class, 'reject']);
-        
+
         // Helper Endpoints
         Route::get('/invoice-receipts-helpers/eligible-pos', [InvoiceReceiptController::class, 'getEligiblePurchaseOrders']);
         Route::get('/invoice-receipts/{id}/summary', [InvoiceReceiptController::class, 'getSummary']);
