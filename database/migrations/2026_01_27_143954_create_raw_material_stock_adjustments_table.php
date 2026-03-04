@@ -13,11 +13,13 @@ return new class extends Migration
     {
         Schema::create('raw_material_stock_adjustments', function (Blueprint $table) {
             $table->id();
+            $table->string('adjustment_no')->unique();
             $table->foreignId('raw_material_id')->constrained();
             $table->foreignId('warehouse_id')->constrained();
             $table->decimal('before_quantity', 15, 2);
             $table->decimal('after_quantity', 15, 2);
             $table->decimal('difference', 15, 2);
+            $table->enum('type', ['in', 'out']);
             $table->text('reason')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->softDeletes();

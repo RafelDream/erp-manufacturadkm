@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WorkOrder;
 use App\Models\SalesOrder;
+use App\Models\RawMaterialStock;
+use App\Models\RawMaterialStockMovement;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -48,26 +51,90 @@ class WorkOrderController extends Controller
     * Update Data Header WO (PUT)
     */
     public function update(Request $request, $id)
-    {
-    $wo = WorkOrder::find($id);
+{
+    // 1. Ambil data WO beserta BOM dan Item BOM-nya
+    $wo = WorkOrder::with(['items.product.boms' => function($q) {
+        $q->where('is_active', true)->with('items');
+    }])->find($id);
 
     if (!$wo) {
         return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
     }
 
+    // 2. Validasi Input
     $request->validate([
         'tanggal' => 'sometimes|date',
-        'status' => 'sometimes|in:draft,processed,completed,cancelled',
-        'notes' => 'nullable|string'
+        'status'  => 'sometimes|in:draft,processed,completed,cancelled',
+        'notes'   => 'nullable|string'
     ]);
 
-    $wo->update($request->only(['tanggal', 'status', 'notes']));
+    return DB::transaction(function () use ($request, $wo) {
+        $oldStatus = $wo->status;
+        $newStatus = $request->status ?? $oldStatus;
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Work Order berhasil diperbarui',
-        'data' => $wo
-    ]);
+        // --- LOGIKA CANCELLED ---
+        if ($newStatus === 'cancelled') {
+            $wo->update(['status' => 'cancelled', 'notes' => $request->notes]);
+            $wo->delete(); // Soft Delete
+            return response()->json(['success' => true, 'message' => 'Work Order dibatalkan dan dihapus']);
+        }
+
+        // --- LOGIKA INTEGRASI BOM & STOK (Saat status berubah ke Completed) ---
+        if ($oldStatus !== 'completed' && $newStatus === 'completed') {
+            foreach ($wo->items as $item) {
+                // Ambil BOM aktif pertama
+                $bom = $item->product->boms->first();
+                
+                if (!$bom) {
+                    throw new \Exception("Produk {$item->product->name} belum memiliki BOM aktif! Stok tidak bisa dipotong.");
+                }
+
+                $multiplier = $item->qty_to_process / $bom->batch_size;
+
+                foreach ($bom->items as $bomItem) {
+                    $totalNeeded = $bomItem->quantity * $multiplier;
+
+                    // Potong Stok Bahan Baku (Warehouse 1)
+                    $rawStock = RawMaterialStock::where([
+                        'raw_material_id' => $bomItem->raw_material_id,
+                        'warehouse_id'    => 1, 
+                    ])->first();
+
+                    if (!$rawStock || $rawStock->quantity < $totalNeeded) {
+                        throw new \Exception("Stok bahan baku ID:{$bomItem->raw_material_id} tidak mencukupi untuk produksi.");
+                    }
+
+                    $rawStock->decrement('quantity', $totalNeeded);
+
+                    // Catat Log Movement
+                    RawMaterialStockMovement::create([
+                        'raw_material_id' => $bomItem->raw_material_id,
+                        'warehouse_id'    => 1,
+                        'movement_type'   => 'OUT',
+                        'quantity'        => $totalNeeded,
+                        'reference_type'  => WorkOrder::class,
+                        'reference_id'    => $wo->id,
+                        'created_by'      => Auth::id(),
+                    ]);
+                }
+
+                // Tambah Stok Barang Jadi 
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $product->increment('stock', $item->qty_to_process);
+                }
+            }
+        }
+
+        // 3. Update data Header WO
+        $wo->update($request->only(['tanggal', 'status', 'notes']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Work Order berhasil diperbarui',
+            'data'    => $wo->load('items')
+        ]);
+    });
 }
 
     /**

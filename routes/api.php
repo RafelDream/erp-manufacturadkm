@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\WarehouseController;
+use App\Http\Controllers\Api\CustomerController;
+
 
 use App\Http\Controllers\Api\ChartOfAccountController;
 use App\Http\Controllers\Api\InitialBalanceController;
@@ -47,6 +49,7 @@ use App\Http\Controllers\Api\WorkOrderController;
 use App\Http\Controllers\Api\DeliveryAssignmentController;
 use App\Http\Controllers\Api\SalesInvoiceController;
 use App\Http\Controllers\Api\SalesReturnController;
+use App\Http\Controllers\Api\SalesReportController;
 
 
 
@@ -86,6 +89,10 @@ Route::prefix('v1')->group(function () {
         Route::put('raw-materials/{id}', [RawMaterialController::class, 'update']);
         Route::post('raw-materials/{id}/post', [RawMaterialController::class, 'post']);
         Route::post('raw-materials/{id}/restore', [RawMaterialController::class, 'restore']);
+
+        Route::apiResource('customer', CustomerController::class);
+        Route::post('customer/{id}/restore', [CustomerController::class, 'restore']);
+
 
         /*
         |--------------------------------------------------------------------------
@@ -392,17 +399,18 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('sales-orders', SalesOrderController::class);
         Route::post('sales-orders/{id}/restore', [SalesOrderController::class, 'restore']);
         Route::get('sales-orders/{id}/outstanding', [SalesOrderController::class, 'getOutstandingItems']);
-        Route::get('sales-orders/{id}/print', [App\Http\Controllers\Api\SalesOrderController::class, 'printPdf']);
+        Route::get('sales-orders/{id}/print', [SalesOrderController::class, 'printPdf']);
 
         /*
         |--------------------------------------------------------------------------
-        | Work Order 
+        | Work Order (Surat Perintah Kerja)
         |--------------------------------------------------------------------------
         */
         // routes/api.php
         Route::get('work-orders/pull-spk/{id}', [WorkOrderController::class, 'getSpkItems']);
         Route::apiResource('work-orders', WorkOrderController::class);
         Route::post('work-orders/{id}/restore', [WorkOrderController::class, 'restore']);
+        Route::get('/sales-order/{id}/items', [WorkOrderController::class, 'getSpkItems']);
 
         /*
         |--------------------------------------------------------------------------
@@ -443,6 +451,19 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('sales-returns', SalesReturnController::class);
         Route::post('sales-returns/{id}/restore', [SalesReturnController::class, 'restore']);
         Route::get('sales-returns/{id}/print', [SalesReturnController::class, 'printPdf']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sales Report (Laporan Penjualan)
+        |--------------------------------------------------------------------------
+        */
+        Route::get('sales-reports/resume', [SalesReportController::class, 'salesResume']);
+        Route::get('sales-reports/by-product', [SalesReportController::class, 'productReport']);
+        Route::get('sales-reports/by-customer', [SalesReportController::class, 'customerReport']);
+        Route::get('sales-reports/monthly-trend', [SalesReportController::class, 'monthlyTrend']);
+        Route::get('sales-reports/by-product/pdf', [SalesReportController::class, 'productReportPdf']);
+        Route::get('sales-reports/by-customer/pdf', [SalesReportController::class, 'customerReportPdf']);
+        Route::apiResource('sales-reports', SalesReportController::class);
 
 
     });

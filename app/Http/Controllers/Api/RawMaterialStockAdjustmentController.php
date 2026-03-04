@@ -28,12 +28,12 @@ class RawMaterialStockAdjustmentController extends Controller
             'reason'          => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        $result = DB::transaction(function () use ($validated) {
 
-            $stock = RawMaterialStock::where([
+            $stock = RawMaterialStock::firstOrCreate([
                 'raw_material_id' => $validated['raw_material_id'],
                 'warehouse_id'    => $validated['warehouse_id'],
-            ])->firstOrFail();
+            ], ['quantity' => 0]);
 
             $before = $stock->quantity;
             $after  = $validated['after_quantity'];
@@ -45,6 +45,7 @@ class RawMaterialStockAdjustmentController extends Controller
                 'before_quantity' => $before,
                 'after_quantity'  => $after,
                 'difference'      => $diff,
+                'type'            => ($diff >= 0) ? 'in' : 'out',
                 'reason'          => $validated['reason'] ?? null,
                 'created_by'      => Auth::id(),
             ]);
@@ -62,9 +63,14 @@ class RawMaterialStockAdjustmentController extends Controller
                 'reference_id'    => $adjustment->id,
                 'created_by'      => Auth::id(),
             ]);
+            return $adjustment->load(['rawMaterial', 'warehouse']);
         });
-
-        return response()->json(['message' => 'Raw Material Stock adjustment berhasil dibuat'], 201);
+        
+        return response()->json([
+                'success' => true,
+                'message' => 'Raw Material Stock adjustment berhasil dibuat',
+                'data'    => $result
+            ], 201);
     }
 
     public function update(Request $request, $id)
@@ -92,7 +98,28 @@ class RawMaterialStockAdjustmentController extends Controller
     {
         RawMaterialStockAdjustment::findOrFail($id)->delete();
 
-        return response()->json(['message' => 'Raw Material Stock Adjustment dihapus']);
+            return DB::transaction(function () use ($id) {
+            $adjustment = RawMaterialStockAdjustment::findOrFail($id);
+        
+            // KOREKSI STOK BALIK: Kembalikan quantity ke 'before_quantity'
+            $stock = RawMaterialStock::where([
+                'raw_material_id' => $adjustment->raw_material_id,
+                'warehouse_id'    => $adjustment->warehouse_id,
+            ])->first();
+
+            if ($stock) {
+                $stock->update(['quantity' => $adjustment->before_quantity]);
+            }
+
+            // Hapus log movement terkait agar laporan stok tetap akurat
+            RawMaterialStockMovement::where('reference_type', RawMaterialStockAdjustment::class)
+                ->where('reference_id', $adjustment->id)
+                ->delete();
+
+            $adjustment->delete();
+
+            return response()->json(['message' => 'Adjustment dibatalkan dan stok dikembalikan ke awal']);
+        });
     }
 
     public function restore($id)

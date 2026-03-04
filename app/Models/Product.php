@@ -53,4 +53,8 @@ class Product extends Model
         return $this->hasMany(SalesReturnItem::class);
     }
 
+    public function boms()
+    {
+        return $this->hasMany(BillOfMaterial::class);
+    }
 }
