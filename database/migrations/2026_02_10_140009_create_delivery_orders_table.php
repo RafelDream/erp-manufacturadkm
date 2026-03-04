@@ -15,11 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('no_sj')->unique(); 
             $table->date('tanggal');
-            $table->string('no_spk')->nullable(); // No Pesanan Penjualan pada gambar
+            $table->string('no_spk')->nullable(); 
+            $table->foreignId('sales_order_id')->constrained('sales_orders')->onDelete('cascade');
             $table->foreignId('customer_id')->constrained('customers'); // Relasi ke Master Customer baru kita
             $table->foreignId('warehouse_id')->constrained('warehouses'); // Gudang Pengirim
-            $table->foreignId('delivery_assignment_id')->constrained('delivery_assignments'); //Relasi ke SPKP
-            $table->string('expedition')->nullable(); 
+            $table->string('expedition')->nullable();
             $table->string('vehicle_number')->nullable(); 
             $table->enum('status', ['draft', 'shipped', 'received', 'cancelled'])->default('draft');
             $table->text('notes')->nullable(); // Catatan Tambahan

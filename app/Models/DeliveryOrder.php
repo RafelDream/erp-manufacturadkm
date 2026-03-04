@@ -12,9 +12,9 @@ class DeliveryOrder extends Model
 
     protected $fillable = [
         'no_sj',
-        'delivery_assignment_id',
         'tanggal',
         'no_spk',
+        'sales_order_id',
         'customer_id',
         'warehouse_id',
         'expedition',
@@ -22,6 +22,10 @@ class DeliveryOrder extends Model
         'status',
         'notes',
         'created_by'
+    ];
+
+    protected $casts = [
+        'tanggal' => 'date',
     ];
 
     /**
@@ -56,8 +60,21 @@ class DeliveryOrder extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function assignment()
+    public function salesOrder()
     {
-    return $this->belongsTo(DeliveryAssignment::class, 'delivery_assignment_id');
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+    }
+
+    public function isShipped()
+    {
+        return $this->status === 'shipped';
+    }
+
+    /**
+     * Cek apakah status sudah diterima customer
+     */
+    public function isReceived()
+    {
+        return $this->status === 'received';
     }
 }

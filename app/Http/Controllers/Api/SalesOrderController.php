@@ -40,9 +40,9 @@ class SalesOrderController extends Controller
             'tanggal' => $request->tanggal,
             'customer_id' => $request->customer_id,
             'notes' => $request->notes,
-            'status' => 'approved', // langsung approved
+            'status' => 'pending',
             'created_by' => Auth::id() ?? 1,
-            'total_price' => 0, // sementara
+            'total_price' => 0,
         ]);
 
         foreach ($request->items as $item) {
@@ -53,6 +53,7 @@ class SalesOrderController extends Controller
             $order->items()->create([
                 'product_id' => $item['product_id'],
                 'qty_pesanan' => $item['qty'],
+                'qty_shipped' => 0,
                 'price' => $item['price'],
                 'subtotal' => $subtotal,
             ]);
@@ -100,7 +101,7 @@ class SalesOrderController extends Controller
         $request->validate([
             'tanggal' => 'sometimes|date',
             'customer_id' => 'sometimes|exists:customers,id',
-            'status' => 'sometimes|in:pending,approved,in_progress,completed,cancelled',
+            'status' => 'sometimes|in:pending,approved,partial,completed,cancelled',
 
         ]);
 
@@ -155,32 +156,31 @@ class SalesOrderController extends Controller
     
         public function getOutstandingItems($id)
         {
-        $order = SalesOrder::with(['items.product', 'deliveryOrders.items'])->find($id);
+        $order = SalesOrder::with(['items.product'])->find($id);
 
-        if (!$order) {
-        return response()->json(['message' => 'SPK tidak ditemukan'], 404);
+            if (!$order) {
+            return response()->json(['message' => 'SPK tidak ditemukan'], 404);
         }
 
-    $outstanding = $order->items->map(function ($item) use ($order) {
-        // Hitung total yang sudah dikirim untuk produk ini dari semua SJ terkait
-        $alreadySent = $order->deliveryOrders->flatMap->items
-            ->where('product_id', $item->product_id)
-            ->sum('qty_realisasi');
-
+    $items = $order->items->map(function ($item) {
         return [
-            'product_id' => $item->product_id,
+            'sales_order_item_id' => $item->id,
+            'product_id'   => $item->product_id,
             'product_name' => $item->product->name,
-            'qty_pesanan' => $item->qty_pesanan,
-            'qty_terkirim' => $alreadySent,
-            'qty_sisa' => max(0, $item->qty_pesanan - $alreadySent),
-            ];
-        });
+            'qty_pesanan'  => (float) $item->qty_pesanan,
+            'qty_terkirim' => (float) $item->qty_shipped,
+            'qty_sisa'     => (float) $item->qty_remaining,
+        ];
+
+        })->filter(fn($item) => $item['qty_sisa'] > 0)->values();
 
         return response()->json([
         'success' => true,
-        'no_spk' => $order->no_spk,
-        'customer_id' => $order->customer_id,
-        'items' => $outstanding
+        'data' => [
+            'sales_order_id' => $order->id,
+            'no_spk'         => $order->no_spk,
+            'items'          => $items
+        ]
         ]);
     }
 
