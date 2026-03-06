@@ -10,9 +10,11 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\CustomerController;
 
-
 use App\Http\Controllers\Api\ChartOfAccountController;
 use App\Http\Controllers\Api\InitialBalanceController;
+use App\Http\Controllers\Api\AccountPayableController;
+use App\Http\Controllers\Api\PayablePaymentController;
+use App\Http\Controllers\Api\LedgerReportController;
 
 use App\Http\Controllers\Api\StockOutController;
 use App\Http\Controllers\Api\StockInitialController;
@@ -314,6 +316,40 @@ Route::prefix('v1')->group(function () {
         Route::delete('/initial-balances/{year}', [InitialBalanceController::class, 'destroy']);
         // Approval
         Route::post('/initial-balances/{year}/approve', [InitialBalanceController::class, 'approve']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | ACCOUNT PAYABLE (Hutang Usaha)
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/account-payables', [AccountPayableController::class, 'index']);
+        Route::get('/account-payables/aging-report', [AccountPayableController::class, 'agingReport']);
+        Route::get('/account-payables/summary-by-supplier', [AccountPayableController::class, 'summaryBySupplier']);
+        Route::get('/account-payables/{id}', [AccountPayableController::class, 'show']);
+        Route::post('/account-payables/from-invoice-receipt', [AccountPayableController::class, 'createFromInvoiceReceipt']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | PAYABLE PAYMENTS (Pembayaran Hutang)
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/payable-payments', [PayablePaymentController::class, 'index']);
+        Route::get('/payable-payments/{id}', [PayablePaymentController::class, 'show']);
+        Route::post('/payable-payments', [PayablePaymentController::class, 'store']);
+        Route::put('/payable-payments/{id}', [PayablePaymentController::class, 'update']);
+        Route::post('/payable-payments/{id}/confirm', [PayablePaymentController::class, 'confirm']);
+        Route::post('/payable-payments/{id}/cancel', [PayablePaymentController::class, 'cancel']);
+        Route::delete('/payable-payments/{id}', [PayablePaymentController::class, 'destroy']);
+        Route::get('/payable-payments/{id}/print', [PayablePaymentController::class, 'print']);
+        
+        /*
+        |--------------------------------------------------------------------------
+        | LEDGER REPORT (Buku Besar & Neraca Saldo)
+        |--------------------------------------------------------------------------
+        */
+        Route::get('/ledger/summary',            [LedgerReportController::class, 'summary']);
+        Route::get('/ledger/detail/{accountId}', [LedgerReportController::class, 'detail']);
+        Route::get('/ledger/trial-balance',      [LedgerReportController::class, 'trialBalance']);
 
         /*
         |--------------------------------------------------------------------------

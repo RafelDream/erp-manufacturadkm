@@ -352,18 +352,26 @@ class InvoiceReceiptController extends Controller
             'approver',
         ])->findOrFail($id);
 
+        // Pastikan relasi unit ter-load pada setiap item
+        $receipt->purchaseOrder->items->each(function ($item) {
+            $item->load('unit');
+        });
+
         $invoice  = $receipt->invoices->first();
         $po       = $receipt->purchaseOrder;
+
+        // Load supplier secara eksplisit jika belum ter-load
+        if (!$po->relationLoaded('supplier') || $po->supplier === null) {
+            $po->load('supplier');
+        }
         $supplier = $po->supplier;
 
         // Susun list barang dari PO items
         $items = $po->items->map(function ($item) {
             $name = $item->rawMaterial?->name ?? $item->product?->name ?? '-';
-            $code = $item->rawMaterial?->code ?? $item->product?->code ?? '-';
             $unit = $item->unit?->name ?? '-';
 
             return [
-                'code'     => $code,
                 'name'     => $name,
                 'unit'     => $unit,
                 'quantity' => (float) $item->quantity,
@@ -403,10 +411,9 @@ class InvoiceReceiptController extends Controller
 
             //  Supplier 
             'supplier' => [
-                'name'    => $supplier?->name,
-                'code'    => $supplier?->code,
-                'address' => $supplier?->address,
-                'phone'   => $supplier?->phone,
+                'name'    => $supplier?->nama,
+                'address' => $supplier?->alamat,
+                'phone'   => $supplier?->telepon,
                 'email'   => $supplier?->email,
             ],
 
