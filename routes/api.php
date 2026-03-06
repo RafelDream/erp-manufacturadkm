@@ -47,8 +47,6 @@ use App\Http\Controllers\Api\ProductionExecutionController;
 use App\Http\Controllers\Api\SalesQuotationController;
 use App\Http\Controllers\Api\DeliveryOrderController;
 use App\Http\Controllers\Api\SalesOrderController;
-use App\Http\Controllers\Api\WorkOrderController;
-use App\Http\Controllers\Api\DeliveryAssignmentController;
 use App\Http\Controllers\Api\SalesInvoiceController;
 use App\Http\Controllers\Api\SalesReturnController;
 use App\Http\Controllers\Api\SalesReportController;
@@ -436,29 +434,6 @@ Route::prefix('v1')->group(function () {
         Route::post('sales-orders/{id}/restore', [SalesOrderController::class, 'restore']);
         Route::get('sales-orders/{id}/outstanding', [SalesOrderController::class, 'getOutstandingItems']);
         Route::get('sales-orders/{id}/print', [SalesOrderController::class, 'printPdf']);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Work Order (Surat Perintah Kerja)
-        |--------------------------------------------------------------------------
-        */
-        // routes/api.php
-        Route::get('work-orders/pull-spk/{id}', [WorkOrderController::class, 'getSpkItems']);
-        Route::apiResource('work-orders', WorkOrderController::class);
-        Route::post('work-orders/{id}/restore', [WorkOrderController::class, 'restore']);
-        Route::get('/sales-order/{id}/items', [WorkOrderController::class, 'getSpkItems']);
-
-        /*
-        |--------------------------------------------------------------------------
-        | SPKP (Surat Perintah Kerja Pengiriman)
-        |--------------------------------------------------------------------------
-        */
-
-        Route::apiResource('delivery-assignments', DeliveryAssignmentController::class);
-        Route::get('delivery-assignments/pull-wo/{id}', [DeliveryAssignmentController::class, 'getWoDetails']);
-        Route::put('delivery-assignments/{id}/status', [DeliveryAssignmentController::class, 'updateStatus']);
-        Route::post('delivery-assignments/{id}/restore', [DeliveryAssignmentController::class, 'restore']);
-
         /*
         |--------------------------------------------------------------------------
         | Sales Invoice (Struk Penjualan)

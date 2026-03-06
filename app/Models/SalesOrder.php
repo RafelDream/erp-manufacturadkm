@@ -56,7 +56,7 @@ class SalesOrder extends Model
     public function deliveryOrders()
     {
         // Relasi ke Surat Jalan melalui kolom no_spk
-        return $this->hasMany(DeliveryOrder::class, 'no_spk', 'sales_order_id');
+        return $this->hasMany(DeliveryOrder::class, 'sales_order_id');
     }
 
     /*
@@ -65,18 +65,40 @@ class SalesOrder extends Model
     |--------------------------------------------------------------------------
     */
 
-    public function isApproved()
+   public function getDeliveryProgressAttribute()
     {
-        return $this->status === 'approved';
+        $totalOrdered = $this->items->sum('qty_pesanan');
+        $totalShipped = $this->items->sum('qty_shipped');
+        
+        if ($totalOrdered <= 0) return 0;
+        
+        return round(($totalShipped / $totalOrdered) * 100, 2);
     }
 
-    public function isInProgress()
+    // Memastikan status sinkron dengan realita pengiriman di gudang
+    public function syncStatus()
     {
-        return $this->status === 'in_progress';
+        $totalOrdered = $this->items->sum('qty_pesanan');
+        $totalShipped = $this->items->sum('qty_shipped');
+
+        // Jika belum ada pengiriman sama sekali, jangan ubah status (tetap pending/approved)
+        if ($totalShipped <= 0) return; 
+
+        if ($totalShipped >= $totalOrdered) {
+            $this->status = 'completed';
+        } else {
+            $this->status = 'partial';
+        }
+
+        $this->save();
     }
 
-    public function isCompleted()
-    {
-        return $this->status === 'completed';
-    }
+    // Status Checkers untuk UI Next.js
+    public function isPending() { return $this->status === 'pending'; }
+    public function isApproved() { return $this->status === 'approved'; }
+    public function isPartial() { return $this->status === 'partial'; }
+    public function isCompleted() { return $this->status === 'completed'; }
+
+    // Menambahkan delivery_progress ke output JSON secara otomatis
+    protected $appends = ['delivery_progress'];
 }

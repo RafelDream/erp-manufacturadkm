@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryOrder;
+use App\Models\SalesOrderItem;
+use App\Models\Product;
 use App\Models\StockMovement;
-use App\Models\DeliveryAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ class DeliveryOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = DeliveryOrder::with(['customer', 'warehouse']);
+        $query = DeliveryOrder::with(['customer', 'warehouse', 'salesOrder']);
 
         if ($request->filled(['tanggal_awal', 'tanggal_akhir'])) {
             $query->whereBetween('tanggal_sj', [$request->tanggal_awal, $request->tanggal_akhir]);
@@ -35,31 +36,29 @@ class DeliveryOrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'delivery_assignment_id' => 'required|exists:delivery_assignments,id',
             'tanggal'    => 'required|date',
+            'sales_order_id' => 'required|exists:sales_orders,id',
             'customer_id'   => 'required|exists:customers,id',
             'warehouse_id'  => 'required|exists:warehouses,id',
             'status'        => 'required|in:draft,shipped',
             'items'         => 'required|array|min:1',
+            'items.*.sales_order_item_id' => 'required|exists:sales_order_items,id',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.qty'        => 'required|numeric|min:0.1',
         ]);
 
         return DB::transaction(function () use ($request) {
-            $spkp = DeliveryAssignment::with(['workOrder.salesOrder.items', 'workOrder.salesOrder.customer'])->find($request->delivery_assignment_id);
             // Generate No Dokumen Otomatis
             $noSj = 'SJ-' . date('Ymd') . '-' . strtoupper(Str::random(4));
 
             //Simpan Header (Data Dokumen)
             $do = DeliveryOrder::create([
                 'no_sj'                  => $noSj,
-                'delivery_assignment_id' => $request->delivery_assignment_id,
+                'sales_order_id'         => $request->sales_order_id,
                 'tanggal'             => $request->tanggal,
                 'no_spk'                 => $request->no_spk,
                 'customer_id'            => $request->customer_id,
                 'warehouse_id'           => $request->warehouse_id,
-                'expedition'             => $request->expedition,
-                'vehicle_number'         => $request->vehicle_number,
                 'notes'                  => $request->notes,
                 'status'                 => $request->status,
                 'created_by'             => Auth::id() ?? 1,
@@ -67,19 +66,17 @@ class DeliveryOrderController extends Controller
             
             foreach ($request->items as $item) {
             $do->items()->create([
+                'sales_order_item_id' => $item['sales_order_item_id'],
                 'product_id'    => $item['product_id'],
                 'qty_realisasi' => $item['qty'],
             ]);
 
             if ($request->status === 'shipped') {
-                $this->reduceStock($do, $item['product_id'], $item['qty']);
+                $this->processShipping($do, $item);
             }
         }
+            $do->salesOrder->syncStatus();
 
-            $assignmentStatus = ($request->status === 'shipped') ? 'in_transit' : 'on_process';
-            DeliveryAssignment::where('id', $request->delivery_assignment_id)
-                ->update(['status' => $assignmentStatus]);
-            
             return response()->json([
             'success' => true,
             'message' => $request->status === 'shipped' ? 'Surat Jalan Berhasil Dikirim & Stok Terpotong' : 'Surat Jalan Disimpan sebagai Draft',
@@ -100,9 +97,6 @@ class DeliveryOrderController extends Controller
         foreach ($do->items as $item) {
             $this->reduceStock($do, $item->product_id, $item->qty_realisasi);
         }
-
-        DeliveryAssignment::where('id', $do->delivery_assignment_id)
-            ->update(['status' => 'in_transit']);
 
         $do->update(['status' => 'shipped']);
 
@@ -133,7 +127,7 @@ class DeliveryOrderController extends Controller
      */
     public function show($id)
     {
-        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product', 'creator'])->find($id);
+        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product', 'creator', 'salesOrder'])->find($id);
 
         if (!$do) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
@@ -179,21 +173,18 @@ class DeliveryOrderController extends Controller
         }
 
         return DB::transaction(function () use ($do) {
-            // 1. Kembalikan stok yang sudah terpotong (Stock In balik)
-            foreach ($do->items as $item) {
-                StockMovement::create([
-                    'product_id'   => $item->product_id,
-                    'warehouse_id' => $do->warehouse_id,
-                    'type'         => 'in', // Masuk kembali karena pembatalan SJ
-                    'quantity'     => $item->qty_realisasi,
-                    'reference_id' => $do->no_sj,
-                    'notes'        => 'Pembatalan/Hapus SJ: ' . $do->no_sj,
-                    'created_by'   => Auth::id() ?? 1,
-                ]);
+            // Jika sudah shipped, kembalikan stok dan kurangi qty_shipped di SO
+            if ($do->status === 'shipped') {
+                foreach ($do->items as $item) {
+                    $this->reverseShipping($do, $item);
+                }
             }
 
-            // 2. Soft Delete Header SJ
             $do->delete();
+            
+            if ($do->salesOrder) {
+                $do->salesOrder->syncStatus();
+            }
 
             return response()->json([
                 'success' => true,
@@ -214,21 +205,19 @@ class DeliveryOrderController extends Controller
         }
 
         return DB::transaction(function () use ($do) {
-            // 1. Potong stok lagi (Stock Out) karena SJ aktif kembali
-            foreach ($do->items as $item) {
-                StockMovement::create([
-                    'product_id'   => $item->product_id,
-                    'warehouse_id' => $do->warehouse_id,
-                    'type'         => 'out',
-                    'quantity'     => $item->qty_realisasi,
-                    'reference_id' => $do->no_sj,
-                    'notes'        => 'Restore SJ: ' . $do->no_sj,
-                    'created_by'   => Auth::id() ?? 1,
+            $do->restore();
+
+            if ($do->status === 'shipped') {
+                foreach ($do->items as $item) {
+                    $this->processShipping($do, [
+                    'sales_order_item_id' => $item->sales_order_item_id,
+                    'product_id'          => $item->product_id,
+                    'qty'                 => $item->qty_realisasi, // Mapping ke 'qty'
                 ]);
+                }
             }
 
-            // 2. Restore data
-            $do->restore();
+            $do->salesOrder->syncStatus();
 
             return response()->json([
                 'success' => true,
@@ -243,16 +232,73 @@ class DeliveryOrderController extends Controller
         $do = DeliveryOrder::findOrFail($id);
 
         if ($do->status !== 'shipped') {
-            return response()->json(['message' => 'Barang belum dikirim, tidak bisa konfirmasi terima.'], 422);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Barang belum dikirim atau sudah berstatus diterima.'
+        ], 422);
+    }
 
-            // Update status Assignment menjadi completed
-        DeliveryAssignment::where('id', $do->delivery_assignment_id)
-            ->update(['status' => 'completed']);
+    return DB::transaction(function () use ($do) {
+        // 2. Update status menjadi received
+        $do->update([
+            'status' => 'received',
+            // Anda bisa menambah kolom 'received_at' jika ada di migration
+        ]);
+        // 3. (Opsional) Jika ingin otomatis mengupdate status Sales Order jika perlu
+        if ($do->salesOrder) {
+            $do->salesOrder->syncStatus();
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Barang telah diterima oleh customer. Tugas selesai!'
+            'message' => 'Konfirmasi berhasil: Barang telah diterima oleh pelanggan.',
+            'data' => $do
+        ]);
+    });
+    }
+
+    private function processShipping($do, $item)
+    {
+    $qty = $item['qty'] ?? $item['qty_realisasi'];
+    $soItemId = $item['sales_order_item_id'];
+
+    $product = Product::find($item['product_id']);
+    
+    if ($product->stock < $item['qty']) {
+        throw new \Exception("Stok untuk produk {$product->name} tidak mencukupi!");
+    }
+
+    // 1. Kurangi Stok Fisik di tabel Products
+    Product::where('id', $item['product_id'])->decrement('stock', $qty);
+
+    // 2. Tambah Qty Terkirim di Sales Order Item
+    SalesOrderItem::where('id', $soItemId)->increment('qty_shipped', $qty);
+
+    // 3. Catat Mutasi Stok
+    StockMovement::create([
+        'product_id'   => $item['product_id'],
+        'warehouse_id' => $do->warehouse_id,
+        'type'         => 'out',
+        'quantity'     => $qty,
+        'reference_id' => $do->no_sj,
+        'notes'        => 'Pengiriman SJ: ' . $do->no_sj,
+        'created_by'   => Auth::id() ?? 1,
+    ]);
+    }
+
+    private function reverseShipping($do, $item)
+    {
+        Product::where('id', $item->product_id)->increment('stock', $item->qty_realisasi);
+        SalesOrderItem::where('id', $item->sales_order_item_id)->decrement('qty_shipped', $item->qty_realisasi);
+
+        StockMovement::create([
+            'product_id'   => $item->product_id,
+            'warehouse_id' => $do->warehouse_id,
+            'type'         => 'IN',
+            'quantity'     => $item->qty_realisasi,
+            'reference_id' => $do->no_sj,
+            'notes'        => 'Pembatalan/Hapus SJ: ' . $do->no_sj,
+            'created_by'   => Auth::id() ?? 1,
         ]);
     }
 }

@@ -33,11 +33,11 @@ return new class extends Migration
 
             // 🔥 Sinkron dengan workflow convert
             $table->enum('status', [
-                'pending',
-                'approved',
-                'in_progress',
-                'completed',
-                'cancelled'
+                'pending',     // Baru masuk, menunggu verifikasi
+                'approved',    // Sudah diverifikasi, siap dikirim (Ready to Ship)
+                'partial',     // Sudah dikirim sebagian
+                'completed',   // Selesai (Semua qty sudah terkirim)
+                'cancelled'    // Dibatalkan
             ])->default('pending');
 
             $table->foreignId('created_by')
