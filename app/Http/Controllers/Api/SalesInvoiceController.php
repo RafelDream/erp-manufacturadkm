@@ -48,12 +48,17 @@ class SalesInvoiceController extends Controller
             $finalAmount = $totalOriginal - $discountAmount;
 
             $so = SalesOrder::findOrFail($request->sales_order_id);
-            $lastDo = DeliveryOrder::whereHas('assignment.workOrder', function($q) use ($so) {
-                    $q->where('sales_order_id', $so->id);
-            })
-            ->where('status', 'shipped')
-            ->latest()
-            ->first();
+            $lastDo = DeliveryOrder::where('sales_order_id', $so->id)
+                        ->where('status', 'shipped')
+                        ->latest()
+                        ->first();
+
+            if (!$lastDo) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Delivery Order tidak ditemukan untuk Sales Order ini.'
+                ], 404);
+            }
 
             $gallonLoanQty = 0;
             if (!$lastDo) {
@@ -326,9 +331,16 @@ class SalesInvoiceController extends Controller
     private function calculateGallonLoan($salesOrderId)
     {
     // Cari DO yang statusnya shipped untuk SO ini
-    $lastDo = DeliveryOrder::whereHas('assignment.workOrder', function($q) use ($salesOrderId) {
-        $q->where('sales_order_id', $salesOrderId);
-    })->where('status', 'shipped')->latest()->first();
+    $lastDo = DeliveryOrder::where('sales_order_id', $salesOrderId)
+                ->whereIn('status', ['shipped', 'delivered']) // Bisa shipped atau delivered tergantung flow Anda
+                ->latest()
+                ->first();
+
+    if (!$lastDo) {
+        return 0;
+    }
+
+    return $lastDo->gallon_loan_qty ?? 0;
 
     $qty = 0;
     if ($lastDo) {
