@@ -10,6 +10,7 @@ use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 
 class DeliveryOrderController extends Controller
@@ -300,5 +301,21 @@ class DeliveryOrderController extends Controller
             'notes'        => 'Pembatalan/Hapus SJ: ' . $do->no_sj,
             'created_by'   => Auth::id() ?? 1,
         ]);
+    }
+
+    public function printPdf($id)
+    {
+        // Load data lengkap dengan relasinya
+        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product', 'salesOrder', 'creator'])->findOrFail($id);
+
+        // Kirim data ke view blade bernama 'pdf.delivery_order'
+        $pdf = Pdf::loadView('deliveryorder.delivery_order', compact('do'))
+                ->setPaper('a4', 'portrait');
+
+        // Nama file saat didownload
+        $filename = 'SJ-' . $do->no_sj . '.pdf';
+
+        // Stream untuk membuka di browser (atau download() untuk langsung unduh)
+        return $pdf->stream($filename);
     }
 }

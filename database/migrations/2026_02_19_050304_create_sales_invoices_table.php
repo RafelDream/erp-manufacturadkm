@@ -25,6 +25,8 @@ return new class extends Migration
             $table->decimal('balance_due', 15, 2)->default(0);
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('final_amount', 15, 2)->default(0);
+            $table->decimal('ppn_amount', 15, 2)->default(0);
+            $table->decimal('pph_amount', 15, 2)->default(0);
             $table->enum('payment_type', ['full', 'dp'])->default('full');
             $table->enum('status', ['draft', 'partial', 'paid', 'cancelled'])->default('draft');
             $table->text('notes')->nullable();

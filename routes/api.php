@@ -364,12 +364,6 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Penjualan
-        |--------------------------------------------------------------------------
-        */
-
-        /*
-        |--------------------------------------------------------------------------
         | Penawaran Penjualan (Sales Quotation)
         |--------------------------------------------------------------------------
         */
@@ -388,6 +382,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('delivery-orders', DeliveryOrderController::class);
         Route::post('delivery-orders/{id}/restore', [DeliveryOrderController::class, 'restore']);
         Route::post('delivery-orders/{id}/confirm-received', [DeliveryOrderController::class, 'confirmReceived']);
+        Route::get('delivery-orders/{id}/print', [DeliveryOrderController::class, 'printPdf']);
 
         /*
         |--------------------------------------------------------------------------
@@ -409,6 +404,7 @@ Route::prefix('v1')->group(function () {
         Route::post('sales-invoices/{id}/return-gallon', [SalesInvoiceController::class, 'returnGallon']);
         Route::post('sales-invoices/{id}/restore', [SalesInvoiceController::class, 'restore']);
         Route::delete('sales-invoices/{id}/force-delete', [SalesInvoiceController::class, 'forceDelete']);
+        Route::get('sales-invoices/ledger-report', [SalesInvoiceController::class, 'getLedgerReport']);
         // --- 2. Endpoint Proses Pembayaran & Penagihan ---
         Route::post('sales-invoices/{id}/installment', [SalesInvoiceController::class, 'payInstallment']);
         Route::post('sales-invoices/{id}/pay-remainder', [SalesInvoiceController::class, 'payRemainder']);
@@ -436,6 +432,7 @@ Route::prefix('v1')->group(function () {
         Route::get('sales-reports/by-product', [SalesReportController::class, 'productReport']);
         Route::get('sales-reports/by-customer', [SalesReportController::class, 'customerReport']);
         Route::get('sales-reports/monthly-trend', [SalesReportController::class, 'monthlyTrend']);
+        Route::get('sales-report/report-aging', [SalesReportController::class, 'agingReportPdf']);
         Route::get('sales-reports/by-product/pdf', [SalesReportController::class, 'productReportPdf']);
         Route::get('sales-reports/by-customer/pdf', [SalesReportController::class, 'customerReportPdf']);
         Route::apiResource('sales-reports', SalesReportController::class);

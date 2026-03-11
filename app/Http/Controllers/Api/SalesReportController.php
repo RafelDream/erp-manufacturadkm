@@ -44,19 +44,32 @@ class SalesReportController extends Controller
     {
         $startDate = $request->start_date ?? date('Y-m-01');
         $endDate = $request->end_date ?? date('Y-m-d');
+        $paymentStatus = $request->payment_status;
 
-        $data = DB::table('sales_orders')
+        $query = DB::table('sales_orders')
             ->join('customers', 'sales_orders.customer_id', '=', 'customers.id')
+            ->join('sales_invoices', 'sales_orders.id', '=', 'sales_invoices.sales_order_id')
             ->select(
                 'customers.name as customer_name',
                 DB::raw('COUNT(sales_orders.id) as total_orders'),
-                DB::raw('SUM(sales_orders.total_price) as total_kontribusi')
+                DB::raw('SUM(sales_orders.total_price) as total_kontribusi'),
+                DB::raw('SUM(sales_invoices.balance_due) as total_piutang')
             )
             ->whereBetween('sales_orders.tanggal', [$startDate, $endDate])
             ->whereNull('sales_orders.deleted_at')
             ->groupBy('customers.id', 'customers.name')
             ->orderBy('total_kontribusi', 'DESC')
             ->where('sales_orders.status', '=', 'completed')
+            ->get();
+
+            if ($paymentStatus == 'paid') {
+            $query->where('sales_invoices.balance_due', '<=', 0);
+            } elseif ($paymentStatus == 'unpaid') {
+            $query->where('sales_invoices.balance_due', '>', 0);
+            }
+
+            $data = $query->groupBy('customers.id', 'customers.name')
+            ->orderBy('total_kontribusi', 'DESC')
             ->get();
 
         return response()->json(['success' => true, 'data' => $data]);
@@ -128,6 +141,7 @@ class SalesReportController extends Controller
                 DB::raw('SUM(sales_order_items.qty_pesanan * sales_order_items.price) as total_omzet')
             )
             ->whereBetween('sales_orders.tanggal', [$startDate, $endDate])
+            ->where('sales_orders.status', '=', 'completed')
             ->whereNull('sales_orders.deleted_at')
             ->groupBy('products.id', 'products.name', 'products.kode')
             ->get();
@@ -143,20 +157,98 @@ class SalesReportController extends Controller
     {
         $startDate = $request->start_date ?? date('Y-m-01');
         $endDate = $request->end_date ?? date('Y-m-d');
+        $paymentStatus = $request->payment_status;
 
-        $data = DB::table('sales_orders')
+        $query = DB::table('sales_orders')
             ->join('customers', 'sales_orders.customer_id', '=', 'customers.id')
+            ->join('sales_invoices', 'sales_orders.id', '=', 'sales_invoices.sales_order_id')
             ->select(
             'customers.name as customer_name',
             DB::raw('COUNT(sales_orders.id) as total_orders'),
-            DB::raw('SUM(sales_orders.total_price) as total_kontribusi')
+            DB::raw('SUM(sales_orders.total_price) as total_kontribusi'),
+            DB::raw('SUM(sales_invoices.balance_due) as total_piutang')
         )
         ->whereBetween('sales_orders.tanggal', [$startDate, $endDate])
+        ->where('sales_orders.status', '=', 'completed')
         ->whereNull('sales_orders.deleted_at')
         ->groupBy('customers.id', 'customers.name')
         ->get();
 
+        if ($paymentStatus == 'paid') {
+            $query->where('sales_invoices.balance_due', '<=', 0);
+        } elseif ($paymentStatus == 'unpaid') {
+            $query->where('sales_invoices.balance_due', '>', 0);
+        }
+
+        $data = $query->groupBy('customers.id', 'customers.name')
+            ->orderBy('total_kontribusi', 'DESC')
+            ->get();
+
         $pdf = Pdf::loadView('salesreport.report_customer', compact('data', 'startDate', 'endDate'));
         return $pdf->stream('laporan-penjualan-customer.pdf');
+    }
+
+    /**
+     * 4. Laporan Aging Piutang (Analisis Umur Piutang)
+     */
+    public function agingReport(Request $request)
+    {
+        // Mengambil semua invoice yang belum lunas
+        $data = DB::table('sales_invoices')
+            ->join('customers', 'sales_invoices.customer_id', '=', 'customers.id')
+            ->select(
+                'customers.name as customer_name',
+                'sales_invoices.no_invoice',
+                'sales_invoices.tanggal',
+                'sales_invoices.due_date',
+                'sales_invoices.balance_due',
+                DB::raw('DATEDIFF(NOW(), sales_invoices.due_date) as days_overdue')
+            )
+            ->where('sales_invoices.balance_due', '>', 0)
+            ->whereNull('sales_invoices.deleted_at')
+            ->get()
+            ->map(function ($item) {
+                // Pengelompokan umur piutang
+                $days = $item->days_overdue;
+                $item->status_aging = 'Belum Jatuh Tempo';
+                
+                if ($days > 0 && $days <= 30) {
+                    $item->status_aging = '1 - 30 Hari';
+                } elseif ($days > 30 && $days <= 60) {
+                    $item->status_aging = '31 - 60 Hari';
+                } elseif ($days > 60 && $days <= 90) {
+                    $item->status_aging = '61 - 90 Hari';
+                } elseif ($days > 90) {
+                    $item->status_aging = '> 90 Hari (Macet)';
+                }
+
+                return $item;
+            });
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * Cetak PDF Laporan Aging Piutang
+     */
+    public function agingReportPdf(Request $request)
+    {
+        $data = DB::table('sales_invoices')
+            ->join('customers', 'sales_invoices.customer_id', '=', 'customers.id')
+            ->select(
+                'customers.name as customer_name',
+                'sales_invoices.no_invoice',
+                'sales_invoices.tanggal',
+                'sales_invoices.due_date',
+                'sales_invoices.balance_due',
+                DB::raw('DATEDIFF(NOW(), sales_invoices.due_date) as days_overdue')
+            )
+            ->where('sales_invoices.balance_due', '>', 0)
+            ->whereNull('sales_invoices.deleted_at')
+            ->get();
+
+        $today = date('d M Y');
+        $pdf = Pdf::loadView('salesreport.report_aging', compact('data', 'today'));
+        return $pdf->stream('laporan-aging-piutang.pdf');
     }
 }

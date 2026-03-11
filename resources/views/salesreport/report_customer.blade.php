@@ -30,6 +30,11 @@
         <div class="header-content">
             <h2 style="margin: 0; padding-top: 10px;">LAPORAN PENJUALAN PER CUSTOMER</h2>
             <p style="margin: 5px 0 0 0;">Periode: {{ \Carbon\Carbon::parse($startDate)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($endDate)->format('d M Y') }}</p>
+            @if(isset($paymentStatus))
+                <p style="margin: 2px 0 0 0; font-weight: bold;">Status: {{ ucfirst($paymentStatus == 'unpaid' ? 'Belum Lunas' : ($paymentStatus == 'paid' ? 'Lunas' : 'Semua')) }}</p>
+            @if(isset($paymentStatus))
+            <p style="margin: 2px 0 0 0; font-weight: bold;">Status: {{ ucfirst($paymentStatus == 'unpaid' ? 'Belum Lunas' : ($paymentStatus == 'paid' ? 'Lunas' : 'Semua')) }}</p>
+            @endif
         </div>
         <div class="clear"></div>
     </div>
@@ -41,24 +46,32 @@
                 <th>Nama Customer</th>
                 <th width="20%" class="text-right">Total Transaksi</th>
                 <th width="30%" class="text-right">Total Kontribusi (Omzet)</th>
+                <th width="25%" class="text-right">Sisa Piutang</th>
             </tr>
         </thead>
         <tbody>
-            @php $grandTotal = 0; @endphp
+            @php 
+            $grandTotal = 0;
+            $grandTotalPiutang = 0;
+             @endphp
             @foreach($data as $key => $row)
             <tr>
                 <td>{{ $key + 1 }}</td>
                 <td>{{ $row->customer_name }}</td>
                 <td class="text-right">{{ number_format($row->total_orders) }} Order</td>
                 <td class="text-right">Rp {{ number_format($row->total_kontribusi, 0, ',', '.') }}</td>
+                <td class="text-right" style="color: {{ $row->total_piutang > 0 ? '#d9534f' : '#333' }};">
+                    Rp {{ number_format($row->total_piutang, 0, ',', '.') }} </td>
             </tr>
-            @php $grandTotal += $row->total_kontribusi; @endphp
+            @php $grandTotal += $row->total_kontribusi; $grandTotalPiutang += $row->total_piutang; @endphp
             @endforeach
         </tbody>
         <tfoot>
             <tr style="background-color: #f9f9f9; font-weight: bold;">
                 <th colspan="3" class="text-right">Total Keseluruhan</th>
                 <th class="text-right">Rp {{ number_format($grandTotal, 0, ',', '.') }}</th>
+                <th class="text-right" style="color: #d9534f;">Rp {{ number_format($grandTotalPiutang, 0, ',', '.') }}</th>
+            </tr>
             </tr>
         </tfoot>
     </table>

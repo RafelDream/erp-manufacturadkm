@@ -119,6 +119,26 @@
                         <td>Diskon</td>
                         <td class="text-right">-Rp {{ number_format($invoice->discount_amount, 0, ',', '.') }}</td>
                     </tr>
+                    @if(($invoice->pph_amount ?? 0) > 0)
+                    <tr class="text-red">
+                        <td>PPh</td>
+                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
+                    </tr>
+                    @if(($invoice->pph_amount ?? 0) > 0)
+                    <tr class="text-red">
+                        <td>PPh</td>
+                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
+                    </tr>
+                    @if(($invoice->pph_amount ?? 0) > 0)
+                    <tr class="text-red">
+                        <td>PPh</td>
+                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
+                    </tr>
+                    @if(($invoice->pph_amount ?? 0) > 0)
+                    <tr class="text-red">
+                        <td>PPh</td>
+                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
+                    </tr>
                     @endif
                     <tr class="grand-total">
                         <td>Grand Total</td>

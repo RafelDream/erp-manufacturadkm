@@ -23,6 +23,8 @@ class SalesInvoice extends Model
         'gallon_loan_qty',
         'gallon_deposit_status',
         'discount_amount', 
+        'ppn_amount',
+        'pph_amount',
         'final_amount',
         'payment_type',
         'total_price', 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DeliveryOrder;
 use App\Models\SalesInvoice;
 use App\Models\SalesOrder;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -80,6 +81,17 @@ class SalesInvoiceController extends Controller
             $dpAmount   = $request->payment_type === 'dp' ? ($request->dp_amount ?? 0) : $totalPrice;
             $balanceDue = $totalPrice - $dpAmount;
 
+            $discountAmount = ($discountPercentage / 100) * $totalOriginal;
+            $priceAfterDiscount = $totalOriginal - $discountAmount;
+
+            // --- LOGIKA PAJAK ---
+            $ppnAmount = $priceAfterDiscount * 0.11; // PPN 11%
+            $pphAmount = $priceAfterDiscount * 0.02;
+            $finalAmount = ($priceAfterDiscount + $ppnAmount) - $pphAmount;
+
+            $dpAmount = $request->payment_type === 'full' ? $finalAmount : ($request->dp_amount ?? 0);
+            $balanceDue = max(0, $finalAmount - $dpAmount);
+
             $status  = ($request->payment_type === 'dp' && $balanceDue > 0) ? 'draft' : 'paid';
             $dueDate = $status === 'paid' ? now() : now()->addMonth()->day(25);
 
@@ -97,6 +109,8 @@ class SalesInvoiceController extends Controller
                 'gallon_loan_qty'       => $gallonLoanQty,
                 'gallon_deposit_status' => $gallonLoanQty > 0 ? 'loaned' : 'none',
                 'discount_amount' => $discountAmount,
+                'ppn_amount'      => $ppnAmount,
+                'pph_amount'      => $pphAmount,
                 'total_amount' => $totalOriginal,     // Harga asli
                 'final_amount' => $finalAmount,
                 'payment_type'   => $request->payment_type,
@@ -312,14 +326,14 @@ class SalesInvoiceController extends Controller
     private function calculateGallonLoan($salesOrderId)
     {
     // Cari DO yang statusnya shipped untuk SO ini
-    $lastDo = \App\Models\DeliveryOrder::whereHas('assignment.workOrder', function($q) use ($salesOrderId) {
+    $lastDo = DeliveryOrder::whereHas('assignment.workOrder', function($q) use ($salesOrderId) {
         $q->where('sales_order_id', $salesOrderId);
     })->where('status', 'shipped')->latest()->first();
 
     $qty = 0;
     if ($lastDo) {
         // Gunakan Query Builder agar lebih aman dan cepat
-        $qty = \Illuminate\Support\Facades\DB::table('delivery_order_items')
+        $qty = DB::table('delivery_order_items')
             ->join('products', 'delivery_order_items.product_id', '=', 'products.id')
             ->where('delivery_order_items.delivery_order_id', $lastDo->id)
             ->where('products.is_returnable', 1)
@@ -327,6 +341,88 @@ class SalesInvoiceController extends Controller
     }
 
     return $qty;
+    }
+
+    public function getLedgerReport(Request $request)
+    {
+    $request->validate([
+        'customer_id' => 'required|exists:customers,id',
+        'start_date'  => 'nullable|date',
+        'end_date'    => 'nullable|date',
+    ]);
+
+    $customerId = $request->customer_id;
+    $startDate  = $request->start_date ?? now()->startOfYear();
+    $endDate    = $request->end_date ?? now()->endOfDay();
+
+    // 1. Ambil semua invoice dalam periode tersebut
+    $invoices = SalesInvoice::where('customer_id', $customerId)
+        ->whereBetween('tanggal', [$startDate, $endDate])
+        ->with(['installments'])
+        ->get();
+
+    // 2. Kalkulasi Ringkasan Finansial (Summary)
+    $summary = [
+        'total_invoiced'     => $invoices->sum('final_amount'),
+        'total_paid_to_date' => $invoices->sum('amount_paid'), // Termasuk DP
+        'total_outstanding'  => $invoices->sum('balance_due'),
+        'total_fines_earned' => $invoices->sum('total_fines'),
+        'gallon_summary' => [
+            'total_loaned'   => $invoices->sum('gallon_loan_qty'),
+            'total_returned' => $invoices->where('gallon_deposit_status', 'returned')->sum('gallon_loan_qty'),
+            'still_at_customer' => $invoices->where('gallon_deposit_status', '!=', 'returned')->sum('gallon_loan_qty'),
+        ]
+    ];
+
+    // 3. Susun Riwayat Transaksi Kronologis (Ledger Entries)
+    $ledger = collect();
+
+    foreach ($invoices as $inv) {
+        // Entry Penjualan (Debit)
+        $ledger->push([
+            'date'        => $inv->tanggal->format('Y-m-d'),
+            'description' => "Penjualan: Invoice {$inv->no_invoice}",
+            'reference'   => $inv->no_invoice,
+            'type'        => 'DEBIT',
+            'amount'      => $inv->final_amount,
+        ]);
+
+        // Entry DP jika ada (Kredit)
+        if ($inv->dp_amount > 0) {
+            $ledger->push([
+                'date'        => $inv->tanggal->format('Y-m-d'),
+                'description' => "Pembayaran DP: {$inv->no_invoice}",
+                'reference'   => $inv->no_invoice,
+                'type'        => 'CREDIT',
+                'amount'      => $inv->dp_amount,
+            ]);
+        }
+
+        // Entry Cicilan dari tabel installments (Kredit)
+        foreach ($inv->installments as $ins) {
+            $ledger->push([
+                'date'        => $ins->payment_date->format('Y-m-d'),
+                'description' => "Cicilan #{$ins->installment_number}: {$inv->no_invoice}",
+                'reference'   => $ins->receipt_no,
+                'type'        => 'CREDIT',
+                'amount'      => $ins->amount - $ins->fine_paid, // Hanya pokok yang mengurangi piutang
+            ]);
+        }
+    }
+
+    // Urutkan berdasarkan tanggal
+    $sortedLedger = $ledger->sortBy('date')->values();
+
+    return response()->json([
+        'success' => true,
+        'customer_info' => Customer::find($customerId),
+        'period' => [
+            'from' => $startDate,
+            'to' => $endDate
+        ],
+        'summary' => $summary,
+        'ledger_history' => $sortedLedger
+    ]);
     }
 
     public function downloadPDF($id)
