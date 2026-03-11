@@ -40,7 +40,6 @@
         .total-row td { padding: 2px 0; }
         .grand-total { font-size: 12px; border-top: 1.5px solid #333; font-weight: bold; }
         
-        /* Footer moved from fixed to relative to reduce whitespace */
         .footer { margin-top: 30px; width: 100%; font-size: 9px; color: #777; border-top: 1px solid #eee; padding-top: 8px; }
         .clear { clear: both; }
     </style>
@@ -101,9 +100,9 @@
         <div class="bottom-section">
             <div class="left-col">
                 <div class="box">
-                    <span class="box-title">Ringkasan Pembelian</span>
-                    Pembelian Galon: <b>{{ $invoice->gallon_loan_qty }} unit</b><br>
-                    Status: <i class="text-blue">{{ ucfirst($invoice->gallon_deposit_status) }}</i>
+                    <span class="box-title">Ringkasan Pengiriman</span>
+                    Pinjaman Galon: <b>{{ $invoice->gallon_loan_qty }} unit</b><br>
+                    Status Deposit: <i class="text-blue">{{ ucfirst($invoice->gallon_deposit_status) }}</i>
                 </div>
                 <p style="margin-top: 5px;"><i>Note: {{ $invoice->notes ?? 'Terima kasih atas pesanannya.' }}</i></p>
             </div>
@@ -114,32 +113,28 @@
                         <td>Total Harga</td>
                         <td class="text-right">Rp {{ number_format($invoice->total_price, 0, ',', '.') }}</td>
                     </tr>
+                    
                     @if($invoice->discount_amount > 0)
                     <tr class="text-red">
                         <td>Diskon</td>
                         <td class="text-right">-Rp {{ number_format($invoice->discount_amount, 0, ',', '.') }}</td>
                     </tr>
-                    @if(($invoice->pph_amount ?? 0) > 0)
-                    <tr class="text-red">
-                        <td>PPh</td>
-                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
+                    @endif
+
+                    @if(($invoice->ppn_amount ?? 0) > 0)
+                    <tr>
+                        <td>PPN (11%)</td>
+                        <td class="text-right">Rp {{ number_format($invoice->ppn_amount, 0, ',', '.') }}</td>
                     </tr>
+                    @endif
+
                     @if(($invoice->pph_amount ?? 0) > 0)
                     <tr class="text-red">
-                        <td>PPh</td>
-                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
-                    </tr>
-                    @if(($invoice->pph_amount ?? 0) > 0)
-                    <tr class="text-red">
-                        <td>PPh</td>
-                        <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
-                    </tr>
-                    @if(($invoice->pph_amount ?? 0) > 0)
-                    <tr class="text-red">
-                        <td>PPh</td>
+                        <td>PPh 23 (2%)</td>
                         <td class="text-right">-Rp {{ number_format($invoice->pph_amount, 0, ',', '.') }}</td>
                     </tr>
                     @endif
+
                     <tr class="grand-total">
                         <td>Grand Total</td>
                         <td class="text-right">Rp {{ number_format($invoice->final_amount, 0, ',', '.') }}</td>
