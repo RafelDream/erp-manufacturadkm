@@ -31,7 +31,8 @@ class SalesReportController extends Controller
             ->whereNull('sales_orders.deleted_at')
             ->groupBy('products.id', 'products.name', 'products.kode')
             ->orderBy('total_qty', 'DESC')
-            ->where('sales_orders.status', '=', 'completed');
+            ->where('sales_orders.status', '=', 'completed')
+            ->get();
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -68,7 +69,8 @@ class SalesReportController extends Controller
             }
 
             $data = $query->groupBy('customers.id', 'customers.name')
-            ->orderBy('total_kontribusi', 'DESC');
+            ->orderBy('total_kontribusi', 'DESC')
+            ->get();
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -115,7 +117,8 @@ class SalesReportController extends Controller
         ->where('status', 'completed')
         ->groupBy(DB::raw('MONTH(tanggal)'))
         ->orderBy('bulan', 'ASC')
-        ->where('sales_orders.status', '=', 'completed');
+        ->where('sales_orders.status', '=', 'completed')
+        ->get();
 
         return response()->json(['success' => true, 'data' => $data]);
     }

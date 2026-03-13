@@ -23,125 +23,115 @@ class SalesInvoiceController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'sales_order_id' => 'required|exists:sales_orders,id',
-            'payment_type'   => 'required|in:full,dp',
-            'dp_amount'      => 'required_if:payment_type,dp|numeric|min:0',
-        ]);
+{
+    $request->validate([
+        'sales_order_id' => 'required|exists:sales_orders,id',
+        'payment_type'   => 'required|in:full,dp',
+        'dp_amount'      => 'required_if:payment_type,dp|numeric|min:0',
+    ]);
 
-        return DB::transaction(function () use ($request) {
-            $so = SalesOrder::with('items')->findOrFail($request->sales_order_id);
-            $totalOriginal = $so->total_price;
-            $gallonLoanQty = $this->calculateGallonLoan($request->sales_order_id);
-            $discountPercentage = 0;
-            if ($gallonLoanQty > 5) {
-                $discountPercentage += 5; // Diskon 5%
-            }
+    return DB::transaction(function () use ($request) {
 
-            $orderCount = SalesInvoice::where('customer_id', $so->customer_id)->count();
-                if ($orderCount >= 2) { // Jika sudah ada 2 invoice sebelumnya, maka ini yang ke-3
-                    $discountPercentage += 2; // Tambahan diskon 2%
-                }
+        // Load $so SEKALI dengan relasi items
+        $so = SalesOrder::with('items')->findOrFail($request->sales_order_id);
 
-            $discountAmount = ($discountPercentage / 100) * $totalOriginal;
-            $finalAmount = $totalOriginal - $discountAmount;
+        // Cek duplikasi invoice LEBIH AWAL
+        if (SalesInvoice::where('sales_order_id', $so->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice untuk SPK ini sudah pernah dibuat.'
+            ], 422);
+        }
 
-            $so = SalesOrder::findOrFail($request->sales_order_id);
-            $lastDo = DeliveryOrder::where('sales_order_id', $so->id)
-                        ->where('status', 'shipped')
-                        ->latest()
-                        ->first();
+        // Cari DO yang sudah shipped — hanya satu kali
+        $lastDo = DeliveryOrder::where('sales_order_id', $so->id)
+                    ->where('status', 'shipped')
+                    ->latest()
+                    ->first();
 
-            if (!$lastDo) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'Delivery Order tidak ditemukan untuk Sales Order ini.'
-                ], 404);
-            }
+        if (!$lastDo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Delivery Order tidak ditemukan untuk Sales Order ini.'
+            ], 404);
+        }
 
-            $gallonLoanQty = 0;
-            if (!$lastDo) {
-                $gallonLoanQty = DB::table('delivery_order_items')
-                ->join('products', 'delivery_order_items.product_id', '=', 'products.id')
-                ->where('delivery_order_items.delivery_order_id', $lastDo->id)
-                ->where('products.is_returnable', 1)
-                ->sum('delivery_order_items.qty_realisasi');
-                return response()->json([
-                'success' => false, 
-                'message' => 'Invoice tidak bisa dibuat karena belum ada Delivery Order yang dikirim.'
-                ], 422);
-            }
-
-            $gallonLoanQty = $lastDo->items()
-                ->whereHas('product', function($q) {
-                    $q->where('is_returnable', 1);
+        // Hitung gallon loan dari DO yang valid
+        $gallonLoanQty = $lastDo->items()
+            ->whereHas('product', function($q) {
+                $q->where('is_returnable', 1);
             })->sum('qty_realisasi');
 
-            if (SalesInvoice::where('sales_order_id', $so->id)->exists()) {
-                return response()->json(['success' => false, 'message' => 'Invoice untuk SPK ini sudah pernah dibuat.'], 422);
-            }
+        // Hitung diskon otomatis
+        $totalOriginal      = $so->total_price;
+        $discountPercentage = 0;
 
-            $totalPrice = $so->total_price;
-            $dpAmount   = $request->payment_type === 'dp' ? ($request->dp_amount ?? 0) : $totalPrice;
-            $balanceDue = $totalPrice - $dpAmount;
+        if ($gallonLoanQty > 5) {
+            $discountPercentage += 5; // Diskon 5%
+        }
 
-            $discountAmount = ($discountPercentage / 100) * $totalOriginal;
-            $priceAfterDiscount = $totalOriginal - $discountAmount;
+        $orderCount = SalesInvoice::where('customer_id', $so->customer_id)->count();
+        if ($orderCount >= 2) {
+            $discountPercentage += 2; // Tambahan diskon 2%
+        }
 
-            // --- LOGIKA PAJAK ---
-            $ppnAmount = $priceAfterDiscount * 0.11; // PPN 11%
-            $pphAmount = $priceAfterDiscount * 0.02;
-            $finalAmount = ($priceAfterDiscount + $ppnAmount) - $pphAmount;
+        $discountAmount     = ($discountPercentage / 100) * $totalOriginal;
+        $priceAfterDiscount = $totalOriginal - $discountAmount;
 
-            $dpAmount = $request->payment_type === 'full' ? $finalAmount : ($request->dp_amount ?? 0);
-            $balanceDue = max(0, $finalAmount - $dpAmount);
+        // Hitung pajak
+        $ppnAmount   = $priceAfterDiscount * 0.11; // PPN 11%
+        $pphAmount   = $priceAfterDiscount * 0.02; // PPh 2%
+        $finalAmount = ($priceAfterDiscount + $ppnAmount) - $pphAmount;
 
-            $status  = ($request->payment_type === 'dp' && $balanceDue > 0) ? 'draft' : 'paid';
-            $dueDate = $status === 'paid' ? now() : now()->addMonth()->day(25);
+        // Hitung DP & sisa tagihan — satu kali, konsisten
+        $dpAmount   = $request->payment_type === 'full' ? $finalAmount : ($request->dp_amount ?? 0);
+        $balanceDue = max(0, $finalAmount - $dpAmount);
 
-            $invoice = SalesInvoice::create([
-                'no_invoice'     => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
-                'sales_order_id' => $so->id,
-                'delivery_order_id'     => $lastDo->id,
-                'customer_id'    => $so->customer_id,
-                'tanggal'        => now(),
-                'due_date'       => $dueDate,
-                'total_price'    => $totalPrice,
-                'dp_amount'      => $dpAmount,
-                'amount_paid'    => $dpAmount,
-                'balance_due'    => $balanceDue,
-                'gallon_loan_qty'       => $gallonLoanQty,
-                'gallon_deposit_status' => $gallonLoanQty > 0 ? 'loaned' : 'none',
-                'discount_amount' => $discountAmount,
-                'ppn_amount'      => $ppnAmount,
-                'pph_amount'      => $pphAmount,
-                'total_amount' => $totalOriginal,     // Harga asli
-                'final_amount' => $finalAmount,
-                'payment_type'   => $request->payment_type,
-                'status'         => $status,
-                'notes'          => $request->payment_type === 'dp' ? 'Tagihan Down Payment (DP)' : 'Pelunasan Penuh',
-                'created_by'     => Auth::id() ?? 1,
+        $status  = ($request->payment_type === 'dp' && $balanceDue > 0) ? 'draft' : 'paid';
+        $dueDate = $status === 'paid' ? now() : now()->addMonth()->day(25);
+
+        $invoice = SalesInvoice::create([
+            'no_invoice'            => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
+            'sales_order_id'        => $so->id,
+            'delivery_order_id'     => $lastDo->id,
+            'customer_id'           => $so->customer_id,
+            'tanggal'               => now(),
+            'due_date'              => $dueDate,
+            'total_price'           => $totalOriginal,
+            'dp_amount'             => $dpAmount,
+            'amount_paid'           => $dpAmount,
+            'balance_due'           => $balanceDue,
+            'gallon_loan_qty'       => $gallonLoanQty,
+            'gallon_deposit_status' => $gallonLoanQty > 0 ? 'loaned' : 'none',
+            'discount_amount'       => $discountAmount,
+            'ppn_amount'            => $ppnAmount,
+            'pph_amount'            => $pphAmount,
+            'total_amount'          => $totalOriginal,
+            'final_amount'          => $finalAmount,
+            'payment_type'          => $request->payment_type,
+            'status'                => $status,
+            'notes'                 => $request->payment_type === 'dp' ? 'Tagihan Down Payment (DP)' : 'Pelunasan Penuh',
+            'created_by'            => Auth::id() ?? 1,
+        ]);
+
+        foreach ($so->items as $item) {
+            $finalQty = $item->qty ?? $item->quantity ?? 1;
+            $invoice->items()->create([
+                'product_id' => $item->product_id,
+                'qty'        => $finalQty ?? 0,
+                'price'      => $item->price ?? 0,
+                'subtotal'   => $item->subtotal ?? 0,
             ]);
+        }
 
-            foreach ($so->items as $item) {
-                $finalQty = $item->qty ?? $item->quantity ?? 1;
-                $invoice->items()->create([
-                    'product_id' => $item->product_id,
-                    'qty'        => $finalQty ?? 0,
-                    'price'      => $item->price ?? 0,
-                    'subtotal'   => $item->subtotal ?? 0,
-                ]);
-            }
-
-            return response()->json([
-                'success'    => true, 
-                'message'    => "Invoice berhasil dibuat. Diskon otomatis: " . $discountPercentage . "%", 
-                'print_type' => $status === 'paid' ? 'INVOICE LUNAS' : 'INVOICE DP',
-                'data'       => $invoice->fresh(['items', 'customer'])
-            ], 201);
-        });
-    }
+        return response()->json([
+            'success'    => true,
+            'message'    => "Invoice berhasil dibuat. Diskon otomatis: " . $discountPercentage . "%",
+            'print_type' => $status === 'paid' ? 'INVOICE LUNAS' : 'INVOICE DP',
+            'data'       => $invoice->fresh(['items', 'customer'])
+        ], 201);
+    });
+}
 
     public function show($id)
     {
@@ -336,7 +326,7 @@ class SalesInvoiceController extends Controller
                 ->latest()
                 ->first();
 
-    if (!$lastDo) {
+    if ($lastDo) {
         return 0;
     }
 
