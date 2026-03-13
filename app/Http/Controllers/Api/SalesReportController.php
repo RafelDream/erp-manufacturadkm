@@ -31,8 +31,7 @@ class SalesReportController extends Controller
             ->whereNull('sales_orders.deleted_at')
             ->groupBy('products.id', 'products.name', 'products.kode')
             ->orderBy('total_qty', 'DESC')
-            ->where('sales_orders.status', '=', 'completed')
-            ->get();
+            ->where('sales_orders.status', '=', 'completed');
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -59,8 +58,8 @@ class SalesReportController extends Controller
             ->whereNull('sales_orders.deleted_at')
             ->groupBy('customers.id', 'customers.name')
             ->orderBy('total_kontribusi', 'DESC')
-            ->where('sales_orders.status', '=', 'completed')
-            ->get();
+            ->where('sales_orders.status', '=', 'completed');
+
 
             if ($paymentStatus == 'paid') {
             $query->where('sales_invoices.balance_due', '<=', 0);
@@ -69,8 +68,7 @@ class SalesReportController extends Controller
             }
 
             $data = $query->groupBy('customers.id', 'customers.name')
-            ->orderBy('total_kontribusi', 'DESC')
-            ->get();
+            ->orderBy('total_kontribusi', 'DESC');
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -117,8 +115,7 @@ class SalesReportController extends Controller
         ->where('status', 'completed')
         ->groupBy(DB::raw('MONTH(tanggal)'))
         ->orderBy('bulan', 'ASC')
-        ->where('sales_orders.status', '=', 'completed')
-        ->get();
+        ->where('sales_orders.status', '=', 'completed');
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -143,8 +140,7 @@ class SalesReportController extends Controller
             ->whereBetween('sales_orders.tanggal', [$startDate, $endDate])
             ->where('sales_orders.status', '=', 'completed')
             ->whereNull('sales_orders.deleted_at')
-            ->groupBy('products.id', 'products.name', 'products.kode')
-            ->get();
+            ->groupBy('products.id', 'products.name', 'products.kode');
 
         $pdf = Pdf::loadView('salesreport.report_product', compact('data', 'startDate', 'endDate'));
         return $pdf->stream('laporan-penjualan-produk.pdf');
@@ -171,8 +167,7 @@ class SalesReportController extends Controller
         ->whereBetween('sales_orders.tanggal', [$startDate, $endDate])
         ->where('sales_orders.status', '=', 'completed')
         ->whereNull('sales_orders.deleted_at')
-        ->groupBy('customers.id', 'customers.name')
-        ->get();
+        ->groupBy('customers.id', 'customers.name');
 
         if ($paymentStatus == 'paid') {
             $query->where('sales_invoices.balance_due', '<=', 0);
@@ -181,8 +176,7 @@ class SalesReportController extends Controller
         }
 
         $data = $query->groupBy('customers.id', 'customers.name')
-            ->orderBy('total_kontribusi', 'DESC')
-            ->get();
+            ->orderBy('total_kontribusi', 'DESC');
 
         $pdf = Pdf::loadView('salesreport.report_customer', compact('data', 'startDate', 'endDate'));
         return $pdf->stream('laporan-penjualan-customer.pdf');
@@ -206,7 +200,6 @@ class SalesReportController extends Controller
             )
             ->where('sales_invoices.balance_due', '>', 0)
             ->whereNull('sales_invoices.deleted_at')
-            ->get()
             ->map(function ($item) {
                 // Pengelompokan umur piutang
                 $days = $item->days_overdue;
@@ -244,8 +237,7 @@ class SalesReportController extends Controller
                 DB::raw('DATEDIFF(NOW(), sales_invoices.due_date) as days_overdue')
             )
             ->where('sales_invoices.balance_due', '>', 0)
-            ->whereNull('sales_invoices.deleted_at')
-            ->get();
+            ->whereNull('sales_invoices.deleted_at');
 
         $today = date('d M Y');
         $pdf = Pdf::loadView('salesreport.report_aging', compact('data', 'today'));
