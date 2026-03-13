@@ -79,7 +79,7 @@ class ChartOfAccountController extends Controller
             'code' => 'nullable|string|unique:chart_of_accounts,code,' . $id,
             'name' => 'nullable|string',
             'type' => 'nullable|in:asset,liability,equity,revenue,expense',
-            'category' => 'nullable|string',
+            'category' => 'nullable|in:kas_bank,piutang,persediaan,aset_tetap,utang_lancar,utang_jangka_panjang,modal,pendapatan_usaha,biaya,pendapatan_lain',
             'is_cash' => 'boolean',
             'is_active' => 'boolean',
         ]);

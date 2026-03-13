@@ -32,9 +32,9 @@ class PayablePayment extends Model
 
     protected $casts = [
         'amount'       => 'decimal:2',
-        'payment_date' => 'date',
-        'confirmed_at' => 'datetime',
-        'cancelled_at' => 'datetime',
+        'payment_date' => 'date:Y-m-d',
+        'confirmed_at' => 'date:Y-m-d',
+        'cancelled_at' => 'date:Y-m-d',
     ];
 
     public function accountPayable()

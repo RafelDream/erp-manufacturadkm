@@ -26,8 +26,8 @@ class GoodsReceipt extends Model
     ];
 
     protected $casts = [
-        'receipt_date' => 'date',
-        'posted_at' => 'datetime',
+        'receipt_date' => 'date:Y-m-d',
+        'posted_at'    => 'date:Y-m-d',
     ];
 
     public function items()

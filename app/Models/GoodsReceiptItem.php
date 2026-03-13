@@ -21,12 +21,13 @@ class GoodsReceiptItem extends Model
     ];
 
     protected $casts = [
-        'quantity_ordered' => 'decimal:3',
-        'quantity_received' => 'decimal:3',
-        'quantity_remaining' => 'decimal:3',
-        'quantity_actual' => 'decimal:3',
-        'unit_price' => 'decimal:2',
-        'total_price' => 'decimal:2',
+        'quantity_ordered'   => 'float',
+        'quantity_received'  => 'float',
+        'quantity_remaining' => 'float',
+        'quantity_actual'    => 'float',
+        'unit_price'         => 'float',
+        'total_price'        => 'float',
+
     ];
 
     public function goodsReceipt()

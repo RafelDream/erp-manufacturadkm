@@ -29,8 +29,8 @@ class AccountPayable extends Model
         'amount'           => 'decimal:2',
         'paid_amount'      => 'decimal:2',
         'remaining_amount' => 'decimal:2',
-        'invoice_date'     => 'date',
-        'due_date'         => 'date',
+        'invoice_date'     => 'date:Y-m-d',
+        'due_date'         => 'date:Y-m-d',
     ];
 
     protected $appends = [];

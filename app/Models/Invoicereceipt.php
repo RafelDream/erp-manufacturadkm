@@ -25,9 +25,9 @@ class InvoiceReceipt extends Model
     ];
 
     protected $casts = [
-        'transaction_date' => 'date',
-        'submitted_at' => 'datetime',
-        'approved_at' => 'datetime',
+        'transaction_date' => 'date:Y-m-d',
+        'submitted_at'     => 'date:Y-m-d',
+        'approved_at'      => 'date:Y-m-d',
     ];
 
     /**

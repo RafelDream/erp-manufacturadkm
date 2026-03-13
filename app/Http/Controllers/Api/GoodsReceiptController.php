@@ -61,7 +61,7 @@ class GoodsReceiptController extends Controller
                 'purchaseOrder.items',
                 'warehouse',
                 'creator',
-                'poster'
+                'posted'
             ])->findOrFail($id)
         );
     }
