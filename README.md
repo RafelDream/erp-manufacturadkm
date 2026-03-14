@@ -69,6 +69,8 @@ Isi konfigurasi penting:
 ---
 
 4. Migration Database Dan Seeder
+   Jika sudah ada file db_admk.sql tinggal import pastikan nama nya sesuai dengan file db nya / Env
+   setelah berhasil di import lanjut step 5.
 
 ```
 php artisan migrate --seed
