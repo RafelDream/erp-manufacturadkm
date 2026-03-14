@@ -1,6 +1,6 @@
 # ERP Manufaktur Air Mineral Dalam Kemasan – Backend API (Laravel)
 
-Backend API sebuah ERP Manufaktur AMDK berbasis mobile. Backend ini berperan sebagai **REST API Server** yang menangani Modul Data MAster, Penjualan, Pembelian, Akutansi Sederhana
+Backend API sebuah ERP Manufaktur AMDK berbasis mobile. Backend ini berperan sebagai **REST API Server** yang menangani Modul Data Master, Penjualan, Pembelian, Akutansi Sederhana
 
 ---
 
@@ -23,12 +23,17 @@ Backend API sebuah ERP Manufaktur AMDK berbasis mobile. Backend ini berperan seb
 
 ## Struktur Folder
 
+---
+
 app/
 ├── Http/
 │ ├── Controllers/
 │ │ ├── API <-- Logika utama ERP Semua Module
 │ │ ├── Auth <-- Digunakan Untuk Login dan Log Out
 ├── Models/
+├── Database/
+│ ├── Migration/  
+│ ├── Seeder/
 ├── Resource/
 routes/
 └── api.php <-- Endpoint untuk integrasi frontend
