@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('name');
             $table->foreignId('unit_id')->constrained('units');
             $table->string('tipe');
-            $table->integer('stock')->default(0);
             $table->decimal('volume', 8, 2)->nullable(); 
             $table->boolean('is_returnable')->default(false);
             $table->decimal('harga', 15, 2)->default(0);
