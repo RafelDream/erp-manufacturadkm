@@ -427,6 +427,7 @@ Route::prefix('v1')->group(function () {
         */
         Route::apiResource('sales-orders', SalesOrderController::class);
         Route::post('sales-orders/{id}/restore', [SalesOrderController::class, 'restore']);
+        Route::put('sales-orders/{id}/status', [SalesOrderController::class, 'update']);
         Route::get('sales-orders/{id}/outstanding', [SalesOrderController::class, 'getOutstandingItems']);
         Route::get('sales-orders/{id}/print', [SalesOrderController::class, 'printPdf']);
         /*

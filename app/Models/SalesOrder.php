@@ -13,14 +13,14 @@ class SalesOrder extends Model
         'no_spk',
         'tanggal',
         'customer_id',
-        'sales_quotation_id', // 🔥 tambahan
-        'total_price',        // 🔥 tambahan
+        'sales_quotation_id', 
+        'total_price',        
         'notes',
         'status',
         'created_by'
     ];
 
-    // 🔥 Casting biar aman
+    
     protected $casts = [
         'tanggal'     => 'date',
         'total_price' => 'decimal:2',
@@ -47,7 +47,7 @@ class SalesOrder extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // 🔥 Relasi ke quotation asal
+    
     public function salesQuotation()
     {
         return $this->belongsTo(SalesQuotation::class);
@@ -78,18 +78,30 @@ class SalesOrder extends Model
     // Memastikan status sinkron dengan realita pengiriman di gudang
     public function syncStatus()
     {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
         $totalOrdered = $this->items->sum('qty_pesanan');
         $totalShipped = $this->items->sum('qty_shipped');
 
+        $allItemsFulfilled = $items->every(
+            fn($item) => (float) $item->qty_shipped >= (float) $item->qty_pesanan
+        );
+ 
+
         // Jika belum ada pengiriman sama sekali, jangan ubah status (tetap pending/approved)
-        if ($totalShipped <= 0) return; 
-
-        if ($totalShipped >= $totalOrdered) {
-            $this->status = 'completed';
+        if ($totalShipped <= 0) {
+             $newStatus = 'approved';
+        } elseif ($allItemsFulfilled) {
+            // Semua item di semua baris sudah terpenuhi → selesai
+            $newStatus = 'completed';
         } else {
-            $this->status = 'partial';
+            // Ada pengiriman tapi belum semua terpenuhi → sebagian
+            $newStatus = 'partial';
         }
-
+        if ($this->status === 'cancelled' || $this->status === $newStatus) {
+            return;
+        }
+        
+        $this->status = $newStatus;
         $this->save();
     }
 

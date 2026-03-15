@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SalesOrder;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -12,9 +13,29 @@ use Illuminate\Support\Str;
 
 class SalesOrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $orders = SalesOrder::with(['customer', 'items.product'])->latest()->get();
+        $query = SalesOrder::with(['customer', 'items.product', 'creator']);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+ 
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+ 
+        if ($request->filled(['tanggal_awal', 'tanggal_akhir'])) {
+            $query->whereBetween('tanggal', [
+                $request->tanggal_awal,
+                $request->tanggal_akhir,
+            ]);
+        }
+
+        if ($request->filled('search')) {
+            $query->where('no_spk', 'like', '%' . $request->search . '%');
+        }
+ 
+        $orders = $query->latest()->paginate($request->per_page ?? 10);
         return response()->json(['success' => true, 'data' => $orders]);
     }
 
@@ -30,6 +51,27 @@ class SalesOrderController extends Controller
     ]);
 
     return DB::transaction(function () use ($request) {
+
+        $productIds = collect($request->items)->pluck('product_id');
+ 
+        // Guard: tidak boleh ada produk duplikat dalam satu SO
+        if ($productIds->duplicates()->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terdapat produk duplikat dalam pesanan.',
+            ], 422);
+        }
+
+        $inactiveProducts = Product::whereIn('id', $productIds)
+            ->where('is_active', false)
+            ->pluck('name');
+ 
+        if ($inactiveProducts->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk berikut tidak aktif: ' . $inactiveProducts->join(', '),
+            ], 422);
+        }
 
         $noSpk = 'SPK-' . date('Ymd') . '-' . strtoupper(Str::random(4));
 
@@ -74,7 +116,7 @@ class SalesOrderController extends Controller
 
     public function show($id)
     {
-        $order = SalesOrder::with(['customer', 'items.product'])->find($id);
+        $order = SalesOrder::with(['customer', 'items.product', 'creator', 'deliveryOrders'])->find($id);
         if (!$order) return response()->json(['message' => 'Data tidak ditemukan'], 404);
         return response()->json(['success' => true, 'data' => $order]);
     }
@@ -119,10 +161,30 @@ class SalesOrderController extends Controller
      */
     public function destroy($id)
     {
-        $order = SalesOrder::find($id);
+        $order = SalesOrder::with('deliveryOrders')->find($id);
 
         if (!$order) {
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+        }
+
+        // Guard: SO yang sudah selesai tidak boleh dihapus
+        if ($order->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'SPK yang sudah selesai tidak bisa dihapus.',
+            ], 422);
+        }
+
+        // Guard: SO yang punya DO aktif tidak boleh dihapus
+        $activeDo = $order->deliveryOrders
+            ->whereIn('status', ['shipped', 'received'])
+            ->count();
+ 
+        if ($activeDo > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "SPK tidak bisa dihapus karena masih memiliki {$activeDo} surat jalan aktif.",
+            ], 422);
         }
 
         // Soft delete akan otomatis mengisi kolom deleted_at
@@ -179,6 +241,7 @@ class SalesOrderController extends Controller
         'data' => [
             'sales_order_id' => $order->id,
             'no_spk'         => $order->no_spk,
+            'customer'       => $order->customer?->name,
             'items'          => $items
         ]
         ]);

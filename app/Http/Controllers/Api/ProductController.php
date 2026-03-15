@@ -29,7 +29,6 @@ class ProductController extends Controller
             'tipe' => 'required|string',
             'volume' => 'required|numeric',
             'harga' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
             'is_returnable' => 'boolean',
         ]);
 
@@ -57,7 +56,6 @@ class ProductController extends Controller
             'tipe' => 'nullable|string',
             'volume' => 'nullable|numeric',
             'harga' => 'nullable|numeric|min:0',
-            'stock' => 'required|integer|min:0',
             'is_returnable' => 'boolean',
             'is_active' => 'boolean',
         ]);

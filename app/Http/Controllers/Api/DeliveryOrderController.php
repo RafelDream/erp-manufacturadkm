@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryOrder;
+use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
+use App\Models\Stock;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
@@ -20,7 +22,11 @@ class DeliveryOrderController extends Controller
         $query = DeliveryOrder::with(['customer', 'warehouse', 'salesOrder']);
 
         if ($request->filled(['tanggal_awal', 'tanggal_akhir'])) {
-            $query->whereBetween('tanggal_sj', [$request->tanggal_awal, $request->tanggal_akhir]);
+            $query->whereBetween('tanggal', [$request->tanggal_awal, $request->tanggal_akhir]);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
 
         $data = $query->latest()->paginate($request->per_page ?? 10);
@@ -42,6 +48,9 @@ class DeliveryOrderController extends Controller
             'customer_id'   => 'required|exists:customers,id',
             'warehouse_id'  => 'required|exists:warehouses,id',
             'status'        => 'required|in:draft,shipped',
+            'expedition'    => 'nullable|string',
+            'vehicle_number' => 'nullable|string',
+             'vehicle_number' => 'nullable|string',
             'items'         => 'required|array|min:1',
             'items.*.sales_order_item_id' => 'required|exists:sales_order_items,id',
             'items.*.product_id' => 'required|exists:products,id',
@@ -49,6 +58,30 @@ class DeliveryOrderController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
+
+            $so = SalesOrder::with('items')->findOrFail($request->sales_order_id);
+            if (!in_array($so->status, ['approved', 'partial'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SPK tidak dalam status yang bisa dibuatkan surat jalan. Status saat ini: ' . $so->status,
+                ], 422);
+            }
+
+             if ($request->status === 'shipped') {
+                foreach ($request->items as $item) {
+                    $this->validateStock(
+                        productId:   $item['product_id'],
+                        warehouseId: $request->warehouse_id,
+                        qty:         $item['qty']
+                    );
+
+                    $this->validateQtyRemaining(
+                        soItemId: $item['sales_order_item_id'],
+                        qty:      $item['qty']
+                    );
+                }
+            }
+
             // Generate No Dokumen Otomatis
             $noSj = 'SJ-' . date('Ymd') . '-' . strtoupper(Str::random(4));
 
@@ -56,10 +89,12 @@ class DeliveryOrderController extends Controller
             $do = DeliveryOrder::create([
                 'no_sj'                  => $noSj,
                 'sales_order_id'         => $request->sales_order_id,
-                'tanggal'             => $request->tanggal,
+                'tanggal'                => $request->tanggal,
                 'no_spk'                 => $request->no_spk,
                 'customer_id'            => $request->customer_id,
                 'warehouse_id'           => $request->warehouse_id,
+                'expedition'             => $request->expedition,
+                'vehicle_number'         => $request->vehicle_number,
                 'notes'                  => $request->notes,
                 'status'                 => $request->status,
                 'created_by'             => Auth::id() ?? 1,
@@ -72,55 +107,62 @@ class DeliveryOrderController extends Controller
                 'qty_realisasi' => $item['qty'],
             ]);
 
-            if ($request->status === 'shipped') {
-                $this->processShipping($do, $item);
+           if ($request->status === 'shipped') {
+                $this->executeShipping($do);
+                $so->load('items'); // reload agar syncStatus hitung ulang
+                $so->syncStatus();
             }
         }
             $do->salesOrder->syncStatus();
 
             return response()->json([
-            'success' => true,
-            'message' => $request->status === 'shipped' ? 'Surat Jalan Berhasil Dikirim & Stok Terpotong' : 'Surat Jalan Disimpan sebagai Draft',
-            'data'    => $do->load('items.product', 'customer')
+                'success' => true,
+                'message' => $request->status === 'shipped'
+                    ? 'Surat Jalan berhasil dibuat & stok otomatis terpotong.'
+                    : 'Surat Jalan berhasil disimpan sebagai draft.',
+                'data'    => $do->load('items.product', 'customer', 'warehouse'),
             ], 201);
         });
     }
 
     public function sendOrder($id)
     {
-    $do = DeliveryOrder::with('items')->findOrFail($id);
+    $do = DeliveryOrder::with(['items', 'salesOrder.items'])->findOrFail($id);
 
-    if ($do->status === 'shipped') {
-        return response()->json(['message' => 'Surat jalan sudah berstatus terkirim.'], 422);
-    }
+    if ($do->status !== 'draft') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya surat jalan berstatus draft yang bisa dikirim. Status saat ini: ' . $do->status,
+            ], 422);
+        }
 
     return DB::transaction(function () use ($do) {
         foreach ($do->items as $item) {
-            $this->reduceStock($do, $item->product_id, $item->qty_realisasi);
-        }
+                $this->validateStock(
+                    productId:   $item->product_id,
+                    warehouseId: $do->warehouse_id,
+                    qty:         $item->qty_realisasi
+                );
+
+                $this->validateQtyRemaining(
+                    soItemId: $item->sales_order_item_id,
+                    qty:      $item->qty_realisasi
+                );
+            }
+
+            $this->executeShipping($do);
 
         $do->update(['status' => 'shipped']);
 
+        $do->salesOrder->load('items');
+        $do->salesOrder->syncStatus();
+
         return response()->json([
-            'success' => true,
-            'message' => 'Surat jalan berhasil dikirim, stok sekarang terpotong.',
-            'data' => $do
+                'success' => true,
+                'message' => 'Surat jalan berhasil dikirim. Stok gudang telah terpotong.',
+                'data'    => $do->load('items.product'),
             ]);
         });
-    }
-
-    // Fungsi Helper agar kode tidak berulang
-    private function reduceStock($do, $productId, $qty)
-    {
-    StockMovement::create([
-        'product_id'   => $productId,
-        'warehouse_id' => $do->warehouse_id,
-        'type'         => 'out',
-        'quantity'     => $qty,
-        'reference_id' => $do->no_sj,
-        'notes'        => 'Pengiriman SJ: ' . $do->no_sj,
-        'created_by'   => Auth::id() ?? 1,
-        ]);
     }
 
     /**
@@ -128,7 +170,7 @@ class DeliveryOrderController extends Controller
      */
     public function show($id)
     {
-        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product', 'creator', 'salesOrder'])->find($id);
+        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product.unit', 'items.salesOrderItem', 'creator', 'salesOrder'])->find($id);
 
         if (!$do) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
@@ -145,10 +187,18 @@ class DeliveryOrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
+        if ($do->status !== 'draft') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Surat jalan yang sudah dikirim atau diterima tidak bisa diubah.',
+            ], 422);
+        }
+
         $request->validate([
             'tanggal'     => 'sometimes|date',
             'expedition'     => 'sometimes|string',
             'vehicle_number' => 'sometimes|string',
+            'notes'          => 'sometimes|nullable|string',
         ]);
 
         $do->update($request->only([
@@ -158,7 +208,7 @@ class DeliveryOrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data Surat Jalan berhasil diperbarui',
-            'data' => $do
+            'data' => $do->load('items.product', 'customer', 'warehouse'),
         ]);
     }
 
@@ -167,29 +217,36 @@ class DeliveryOrderController extends Controller
      */
     public function destroy($id)
     {
-        $do = DeliveryOrder::with('items')->find($id);
+        $do = DeliveryOrder::with('items', 'salesOrder')->find($id);
 
         if (!$do) {
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
+        if ($do->status === 'received') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Surat jalan yang sudah diterima pelanggan tidak bisa dihapus.',
+            ], 422);
+        }
+
         return DB::transaction(function () use ($do) {
             // Jika sudah shipped, kembalikan stok dan kurangi qty_shipped di SO
             if ($do->status === 'shipped') {
-                foreach ($do->items as $item) {
-                    $this->reverseShipping($do, $item);
-                }
+                $this->reverseShipping($do);
             }
 
             $do->delete();
             
             if ($do->salesOrder) {
+                $do->salesOrder->load('items');
                 $do->salesOrder->syncStatus();
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Surat Jalan Berhasil Dihapus & Stok Dikembalikan'
+                'message' => 'Surat Jalan berhasil dihapus.' .
+                    ($do->status === 'shipped' ? ' Stok gudang telah dikembalikan.' : ''),
             ]);
         });
     }
@@ -210,32 +267,38 @@ class DeliveryOrderController extends Controller
 
             if ($do->status === 'shipped') {
                 foreach ($do->items as $item) {
-                    $this->processShipping($do, [
-                    'sales_order_item_id' => $item->sales_order_item_id,
-                    'product_id'          => $item->product_id,
-                    'qty'                 => $item->qty_realisasi, // Mapping ke 'qty'
-                ]);
+                    $this->validateStock(
+                        productId:   $item->product_id,
+                        warehouseId: $do->warehouse_id,
+                        qty:         $item->qty_realisasi
+                    );
                 }
+                $this->executeShipping($do);
             }
 
-            $do->salesOrder->syncStatus();
+            $do->restore();
+
+            if ($do->salesOrder) {
+                $do->salesOrder->load('items');
+                $do->salesOrder->syncStatus();
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data Surat Jalan Berhasil Dikembalikan',
-                'data' => $do
+                'data' => $do('items.product'),
             ]);
         });
     }
 
         public function confirmReceived($id)
     {
-        $do = DeliveryOrder::findOrFail($id);
+        $do = DeliveryOrder::with('salesOrder')->findOrFail($id);
 
         if ($do->status !== 'shipped') {
         return response()->json([
             'success' => false,
-            'message' => 'Barang belum dikirim atau sudah berstatus diterima.'
+            'message' => 'Hanya surat jalan berstatus shipped yang bisa dikonfirmasi diterima.'
         ], 422);
     }
 
@@ -247,6 +310,7 @@ class DeliveryOrderController extends Controller
         ]);
         // 3. (Opsional) Jika ingin otomatis mengupdate status Sales Order jika perlu
         if ($do->salesOrder) {
+            $do->salesOrder->load('items');
             $do->salesOrder->syncStatus();
         }
 
@@ -258,40 +322,19 @@ class DeliveryOrderController extends Controller
     });
     }
 
-    private function processShipping($do, $item)
+    private function reverseShipping(DeliveryOrder $do): void
     {
-    $qty = $item['qty'] ?? $item['qty_realisasi'];
-    $soItemId = $item['sales_order_item_id'];
+        $items = $do->relationLoaded('items') ? $do->items : $do->items()->get();
 
-    $product = Product::find($item['product_id']);
-    
-    if ($product->stock < $item['qty']) {
-        throw new \Exception("Stok untuk produk {$product->name} tidak mencukupi!");
-    }
-
-    // 1. Kurangi Stok Fisik di tabel Products
-    Product::where('id', $item['product_id'])->decrement('stock', $qty);
-
-    // 2. Tambah Qty Terkirim di Sales Order Item
-    SalesOrderItem::where('id', $soItemId)->increment('qty_shipped', $qty);
-
-    // 3. Catat Mutasi Stok
-    StockMovement::create([
-        'product_id'   => $item['product_id'],
-        'warehouse_id' => $do->warehouse_id,
-        'type'         => 'out',
-        'quantity'     => $qty,
-        'reference_id' => $do->no_sj,
-        'notes'        => 'Pengiriman SJ: ' . $do->no_sj,
-        'created_by'   => Auth::id() ?? 1,
-    ]);
-    }
-
-    private function reverseShipping($do, $item)
-    {
-        Product::where('id', $item->product_id)->increment('stock', $item->qty_realisasi);
-        SalesOrderItem::where('id', $item->sales_order_item_id)->decrement('qty_shipped', $item->qty_realisasi);
-
+        foreach ($items as $item) {
+            // 1. Kembalikan stok fisik
+            Stock::where('product_id', $item->product_id)
+                 ->where('warehouse_id', $do->warehouse_id)
+                 ->increment('quantity', $item->qty_realisasi);
+            // 2. Kurangi qty_shipped di SO item
+            SalesOrderItem::where('id', $item->sales_order_item_id)
+                          ->decrement('qty_shipped', $item->qty_realisasi);
+             // 3. Catat mutasi stok masuk (reversal)
         StockMovement::create([
             'product_id'   => $item->product_id,
             'warehouse_id' => $do->warehouse_id,
@@ -302,11 +345,78 @@ class DeliveryOrderController extends Controller
             'created_by'   => Auth::id() ?? 1,
         ]);
     }
+    }
+
+    private function validateStock(int $productId, int $warehouseId, float $qty): void
+    {
+        $stock = Stock::where('product_id', $productId)
+                      ->where('warehouse_id', $warehouseId)
+                      ->first();
+ 
+        if (!$stock || $stock->quantity < $qty) {
+            $productName = Product::find($productId)?->name ?? 'ID: ' . $productId;
+            $available   = $stock?->quantity ?? 0;
+            throw new \Exception(
+                "Stok produk '{$productName}' tidak mencukupi. " .
+                "Tersedia: {$available}, dibutuhkan: {$qty}."
+            );
+        }
+    }
+
+    private function validateQtyRemaining(int $soItemId, float $qty): void
+    {
+        $soItem = SalesOrderItem::findOrFail($soItemId);
+ 
+        if ($qty > $soItem->qty_remaining) {
+            $productName = $soItem->product?->name ?? 'ID: ' . $soItem->product_id;
+            throw new \Exception(
+                "Qty pengiriman produk '{$productName}' melebihi sisa pesanan. " .
+                "Sisa: {$soItem->qty_remaining}, dikirim: {$qty}."
+            );
+        }
+    }
+
+     private function executeShipping(DeliveryOrder $do): void
+    {
+        // Pastikan items sudah ter-load
+        $items = $do->relationLoaded('items') ? $do->items : $do->items()->get();
+ 
+        foreach ($items as $item) {
+            // Lock row stok agar tidak ada request lain yang baca nilai lama
+            $stock = Stock::where('product_id', $item->product_id)
+                          ->where('warehouse_id', $do->warehouse_id)
+                          ->lockForUpdate()
+                          ->first();
+ 
+            if (!$stock) {
+                $productName = Product::find($item->product_id)?->name ?? 'ID: ' . $item->product_id;
+                throw new \Exception("Record stok untuk produk '{$productName}' tidak ditemukan.");
+            }
+ 
+            // 1. Kurangi stok fisik di tabel stocks
+            $stock->decrement('quantity', $item->qty_realisasi);
+ 
+            // 2. Tambah qty_shipped di sales_order_items
+            SalesOrderItem::where('id', $item->sales_order_item_id)
+                          ->increment('qty_shipped', $item->qty_realisasi);
+ 
+            // 3. Catat mutasi stok keluar
+            StockMovement::create([
+                'product_id'   => $item->product_id,
+                'warehouse_id' => $do->warehouse_id,
+                'type'         => 'out',
+                'quantity'     => $item->qty_realisasi,
+                'reference_id' => $do->no_sj,
+                'notes'        => 'Pengiriman SJ: ' . $do->no_sj,
+                'created_by'   => Auth::id() ?? 1,
+            ]);
+        }
+    }
 
     public function printPdf($id)
     {
         // Load data lengkap dengan relasinya
-        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product', 'salesOrder', 'creator'])->findOrFail($id);
+        $do = DeliveryOrder::with(['customer', 'warehouse', 'items.product.unit', 'salesOrder', 'creator'])->findOrFail($id);
 
         // Kirim data ke view blade bernama 'pdf.delivery_order'
         $pdf = Pdf::loadView('deliveryorder.delivery_order', compact('do'))

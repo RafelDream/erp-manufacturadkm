@@ -33,6 +33,11 @@ class Product extends Model
         return $this->belongsTo(Unit::class);
     }
 
+    public function stocks()
+    {
+    return $this->hasMany(Stock::class);
+    }
+
     public function stockRequestItems()
     {
         return $this->hasMany(StockRequestItem::class);
@@ -56,5 +61,11 @@ class Product extends Model
     public function boms()
     {
         return $this->hasMany(BillOfMaterial::class);
+    }
+
+    // Jika ingin ambil stok per gudang tertentu
+    public function stockAtWarehouse($warehouseId)
+    {
+    return $this->stocks()->where('warehouse_id', $warehouseId)->first();
     }
 }
