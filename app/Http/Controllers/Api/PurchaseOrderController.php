@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseRequest;
+use App\Models\Product;
+use App\Models\RawMaterial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -42,6 +44,9 @@ class PurchaseOrderController extends Controller
 
     /**
      * Generate PO from APPROVED PR
+     * Harga otomatis:
+     *  - raw_material → last_purchase_price
+     *  - product      → harga (HPP atau manual, apapun yang aktif di product)
      */
     public function generateFromPR($prId)
     {
@@ -62,25 +67,34 @@ class PurchaseOrderController extends Controller
         try {
             $po = DB::transaction(function () use ($pr) {
                 $po = PurchaseOrder::create([
-                    'kode' => 'PO-' . now()->format('YmdHis'),
+                    'kode'                => 'PO-' . now()->format('YmdHis'),
                     'purchase_request_id' => $pr->id,
-                    'order_date' => now(),
-                    'status' => 'draft',
-                    'created_by' => Auth::id(),
+                    'order_date'          => now(),
+                    'status'              => 'draft',
+                    'created_by'          => Auth::id(),
                 ]);
 
                 foreach ($pr->items as $item) {
+                    // ── Ambil harga otomatis ───────────────────────────────
+                    if ($item->raw_material_id) {
+                        $price = RawMaterial::find($item->raw_material_id)?->last_purchase_price ?? 0;
+                    } else {
+                        $price = Product::find($item->product_id)?->harga ?? 0;
+                    }
+
                     PurchaseOrderItem::create([
                         'purchase_order_id' => $po->id,
-                        'raw_material_id' => $item->raw_material_id,
-                        'product_id' => $item->product_id,
-                        'unit_id' => $item->unit_id,
-                        'quantity' => $item->quantity,
+                        'raw_material_id'   => $item->raw_material_id,
+                        'product_id'        => $item->product_id,
+                        'unit_id'           => $item->unit_id,
+                        'quantity'          => $item->quantity,
+                        'price'             => $price,
+                        'subtotal'          => $item->quantity * $price,
                     ]);
                 }
 
                 $pr->update([
-                    'status' => 'completed',
+                    'status'       => 'completed',
                     'completed_at' => now(),
                     'completed_by' => Auth::id(),
                 ]);
@@ -90,13 +104,13 @@ class PurchaseOrderController extends Controller
 
             return response()->json([
                 'message' => 'PO berhasil dibuat dari PR',
-                'data' => $po->load('items.rawMaterial', 'items.product', 'items.unit')
+                'data'    => $po->load('items.rawMaterial', 'items.product', 'items.unit')
             ], 201);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal membuat PO',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -116,8 +130,8 @@ class PurchaseOrderController extends Controller
 
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
-            'order_date' => 'required|date',
-            'notes' => 'nullable|string',
+            'order_date'  => 'required|date',
+            'notes'       => 'nullable|string',
         ]);
 
         $po->update($validated);
@@ -128,7 +142,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Update harga item PO
+     * Update harga item PO (override manual jika harga berubah dari supplier)
      */
     public function updateItemPrice(Request $request, $itemId)
     {
@@ -145,8 +159,8 @@ class PurchaseOrderController extends Controller
         ]);
 
         $item->update([
-            'price' => $validated['price'],
-            'subtotal' => $item->quantity * $validated['price']
+            'price'    => $validated['price'],
+            'subtotal' => $item->quantity * $validated['price'],
         ]);
 
         return response()->json([
@@ -156,6 +170,7 @@ class PurchaseOrderController extends Controller
 
     /**
      * Submit PO (kirim ke supplier)
+     * Validasi harga di-skip karena sudah terisi otomatis saat generate
      */
     public function submit($id)
     {
@@ -170,13 +185,6 @@ class PurchaseOrderController extends Controller
         if (!$po->supplier_id) {
             return response()->json([
                 'message' => 'Supplier wajib diisi sebelum submit'
-            ], 422);
-        }
-
-        $itemsWithoutPrice = $po->items()->whereNull('price')->count();
-        if ($itemsWithoutPrice > 0) {
-            return response()->json([
-                'message' => 'Semua item harus memiliki harga sebelum submit'
             ], 422);
         }
 
@@ -224,23 +232,22 @@ class PurchaseOrderController extends Controller
             DB::transaction(function () use ($po) {
                 if ($po->purchaseRequest) {
                     $po->purchaseRequest->update([
-                        'status' => 'approved',
+                        'status'       => 'approved',
                         'completed_at' => null,
                         'completed_by' => null,
                     ]);
                 }
-
                 $po->delete();
             });
 
             return response()->json([
                 'message' => 'PO berhasil dihapus dan PR dikembalikan ke status approved'
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Gagal menghapus PO',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }

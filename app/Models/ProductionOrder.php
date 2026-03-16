@@ -39,12 +39,12 @@ class ProductionOrder extends Model
 
     protected $casts = [
         'production_date' => 'date',
-        'quantity_plan' => 'decimal:3',
-        'quantity_actual' => 'decimal:3',
-        'quantity_waste' => 'decimal:3',
-        'total_material_cost' => 'decimal:2',
-        'labor_cost' => 'decimal:2',
-        'overhead_cost' => 'decimal:2',
+        'quantity_plan' => 'int',
+        'quantity_actual' => 'int',
+        'quantity_waste' => 'int',
+        'total_material_cost' => 'int',
+        'labor_cost' => 'int',
+        'overhead_cost' => 'int',
         'total_production_cost' => 'decimal:2',
         'hpp_per_unit' => 'decimal:2',
         'released_at' => 'datetime',

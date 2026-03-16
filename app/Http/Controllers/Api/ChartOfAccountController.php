@@ -76,7 +76,7 @@ class ChartOfAccountController extends Controller
         $coa = ChartOfAccount::findOrFail($id);
 
         $validated = $request->validate([
-            'code' => 'nullable|string|unique:chart_of_accounts,code,' . $id,
+            'code' => 'required|string|unique:chart_of_accounts,code,' . $id,
             'name' => 'nullable|string',
             'type' => 'nullable|in:asset,liability,equity,revenue,expense',
             'category' => 'nullable|in:kas_bank,piutang,persediaan,aset_tetap,utang_lancar,utang_jangka_panjang,modal,pendapatan_usaha,biaya,pendapatan_lain',

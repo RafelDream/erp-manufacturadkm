@@ -18,6 +18,8 @@ class Product extends Model
         'stock',
         'volume',
         'harga',
+        'hpp_terakhir',
+        'hpp_updated_at',
         'is_returnable',
         'is_active',
     ];
@@ -26,6 +28,8 @@ class Product extends Model
         'is_returnable' => 'boolean',
         'is_active' => 'boolean',
         'harga' => 'decimal:2',
+        'hpp_terakhir' => 'decimal:2',
+        'hpp_updated_at' => 'datetime',
     ];
 
     public function unit()

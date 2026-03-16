@@ -97,6 +97,7 @@ class StockAdjustmentController extends Controller
                     'quantity'      => $item->difference,
                     'reference_type'=> "Penyesuaian jumlah stok",
                     'reference_id'  => $adjustment->id,
+                    'notes'         => 'Penyesuaian stok: ' . ($item->difference > 0 ? 'penambahan' : 'pengurangan') . ' ' . abs($item->difference) . ' unit',
                     'created_by'    => Auth::id(),
                 ]);
 

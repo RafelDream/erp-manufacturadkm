@@ -88,7 +88,7 @@ class GoodsReceiptController extends Controller
         $po = PurchaseOrder::with('items')->findOrFail($validated['purchase_order_id']);
 
         // Validasi PO harus sudah sent
-        if ($po->status !== 'sent') {
+        if ($po->status !== 'received') {
             return response()->json([
                 'message' => 'PO belum dikirim ke supplier'
             ], 422);
@@ -126,7 +126,7 @@ class GoodsReceiptController extends Controller
                         'quantity_ordered' => $poItem->quantity,
                         'quantity_received' => $itemData['quantity_received'],
                         'quantity_remaining' => $poItem->quantity - $itemData['quantity_received'],
-                        'quantity_actual' => $itemData['quantity_received'], // Default sama dengan received
+                        'quantity_actual' => $itemData['quantity_received'],
                         'unit_price' => $unitPrice, 
                         'total_price' => $totalPrice,
                         'notes' => $itemData['notes'] ?? null,
@@ -229,7 +229,7 @@ class GoodsReceiptController extends Controller
                             'created_by' => Auth::id(),
                         ]);
                         
-                        // ✅ Update last_purchase_price
+                        // Update last_purchase_price
                         if ($unitPrice > 0) {
                             $item->rawMaterial->update([
                                 'last_purchase_price' => $unitPrice

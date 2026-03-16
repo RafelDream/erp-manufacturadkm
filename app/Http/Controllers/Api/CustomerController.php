@@ -19,6 +19,8 @@ class CustomerController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'city' => 'nullable|string|max:100',
             'address' => 'required|string',
             'type' => 'required|in:distributor,agent,retail',
         ]);
@@ -83,7 +85,7 @@ class CustomerController extends Controller
         
         return response()->json([
             'success' => true, 
-            'message' => 'Data Customer Berhasil Dihapus Sementara'
+            'message' => 'Data Customer Berhasil Dihapus'
         ]);
     }
 

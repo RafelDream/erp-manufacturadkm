@@ -159,7 +159,7 @@ class InvoiceReceiptController extends Controller
             'invoice_number'   => 'required|string',
             'invoice_date'     => 'required|date',
             'due_date'         => 'required|date|after_or_equal:invoice_date',
-            'requester_id'     => 'required|exists:users,id',
+            'requester_id'     => 'nullable|exists:users,id',
             'notes'            => 'nullable|string',
         ]);
 

@@ -20,8 +20,8 @@ class WarehouseController extends Controller
         $validated = $request->validate([
             'kode' => 'required|string|unique:warehouses,kode',
             'name' => 'required|string',
-            'lokasi' => 'nullable|string',
-            'deskripsi' => 'nullable|string',
+            'lokasi' => 'required|string',
+            'deskripsi' => 'required|string',
             'is_active' => 'boolean',
         ]);
 

@@ -85,7 +85,6 @@ class StockOutController extends Controller
                 ]);
             }
 
-            // ✅✅✅ INI YANG KURANG - UPDATE STATUS STOCK REQUEST ✅✅✅
             $stockRequest->update([
                 'status' => 'completed',
                 'completed_at' => now(),

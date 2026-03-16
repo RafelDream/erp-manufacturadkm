@@ -172,9 +172,10 @@ Route::prefix('v1')->group(function () {
         Route::post('purchase-requests/{id}/submit', [PurchaseRequestController::class, 'submit']);
         Route::post('purchase-requests/{id}/approve', [PurchaseRequestController::class, 'approve']);
         Route::post('purchase-requests/{id}/reject', [PurchaseRequestController::class, 'reject']);
-        Route::post('purchase-requests/{id}/restore', [PurchaseRequestController::class, 'restore']);
 
         Route::post('purchase-request-items', [PurchaseRequestItemController::class, 'store']);
+        Route::put('purchase-request-items/{id}', [PurchaseRequestItemController::class, 'update']);
+        Route::post('purchase-orders/{id}/sync-prices', [PurchaseOrderController::class, 'syncPrices']);
         Route::delete('purchase-request-items/{id}', [PurchaseRequestItemController::class, 'destroy']);
 
         /*
@@ -276,8 +277,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/{returnId}/detail', [PurchaseReturnReportController::class, 'detail']);
         Route::get('/by-supplier', [PurchaseReturnReportController::class, 'bySupplier']);
         Route::get('/top-returned-items', [PurchaseReturnReportController::class, 'topReturnedItems']);
-        Route::get('/by-reason', [PurchaseReturnReportController::class, 'byReason']);
-        Route::get('/monthly-trend', [PurchaseReturnReportController::class, 'monthlyTrend']);
         Route::get('/approval-rate', [PurchaseReturnReportController::class, 'approvalRate']);
     });
 

@@ -74,7 +74,7 @@ class PurchaseRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'request_date' => 'required|date',
+            'request_date' => 'nullable|date',
             'type'         => 'required|in:raw_materials,product',
             'department'   => 'nullable|string',
             'notes'        => 'nullable|string',

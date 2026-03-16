@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('kode_customer')->unique(); // Contoh: CUST-001
             $table->string('name');
             $table->string('phone')->nullable();
-            $table->text('address'); // Alamat utama untuk Surat Jalan
+            $table->text('address');
             $table->string('city')->nullable();
             $table->enum('type', ['distributor', 'agent', 'retail'])->default('retail');
             $table->boolean('is_active')->default(true);

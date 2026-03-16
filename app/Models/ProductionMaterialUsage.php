@@ -19,7 +19,7 @@ class ProductionMaterialUsage extends Model
     ];
 
     protected $casts = [
-        'quantity_used' => 'decimal:3',
+        'quantity_used' => 'decimal:2',
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
     ];

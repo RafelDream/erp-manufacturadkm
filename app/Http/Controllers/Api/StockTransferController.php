@@ -15,6 +15,20 @@ use Illuminate\Support\Facades\Auth;
 
 class StockTransferController extends Controller
 {
+    public function index()
+    {
+        $transfers = StockTransfer::with([
+            'items.itemable',
+            'dariWarehouse',
+            'keWarehouse',
+            'creator',
+            'approver'
+        ])
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
+
+        return response()->json($transfers);
+    }
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -199,6 +213,12 @@ class StockTransferController extends Controller
         $transfer->update(['status' => 'rejected']);
 
         return response()->json(['message'=>'Transfer ditolak']);
+    }
+
+    public function show($id)
+    {
+        $transfer = StockTransfer::with(['items.itemable', 'dariWarehouse', 'keWarehouse'])->findOrFail($id);
+        return response()->json($transfer);
     }
 }
 

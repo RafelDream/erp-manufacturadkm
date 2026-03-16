@@ -14,7 +14,7 @@ class BillOfMaterialItem extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'decimal:3',
+        'quantity' => 'int',
     ];
 
     public function billOfMaterial()

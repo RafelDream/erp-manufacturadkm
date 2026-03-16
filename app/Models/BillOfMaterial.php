@@ -19,7 +19,7 @@ class BillOfMaterial extends Model
     ];
 
     protected $casts = [
-        'batch_size' => 'decimal:3',
+        'batch_size' => 'int',
         'is_active' => 'boolean',
     ];
 
