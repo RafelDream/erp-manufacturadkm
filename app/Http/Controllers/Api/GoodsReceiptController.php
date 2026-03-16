@@ -115,7 +115,6 @@ class GoodsReceiptController extends Controller
                 foreach ($validated['items'] as $itemData) {
                     $poItem = $po->items()->findOrFail($itemData['purchase_order_item_id']);
                     
-                    // ✅ Calculate price
                     $unitPrice = $poItem->price ?? 0;
                     $totalPrice = $itemData['quantity_received'] * $unitPrice;
 
@@ -193,7 +192,7 @@ class GoodsReceiptController extends Controller
         try {
             DB::transaction(function () use ($gr) {
                 foreach ($gr->items as $item) {
-                    $quantity = $item->quantity_actual; // Gunakan qty actual setelah QC
+                    $quantity = $item->quantity_actual;
                     $unitPrice = $item->unit_price; 
                     $totalPrice = $quantity * $unitPrice;
 

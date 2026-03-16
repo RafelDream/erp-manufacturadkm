@@ -166,7 +166,6 @@ class PayablePaymentController extends Controller
             'notes'            => 'nullable|string',
         ]);
 
-        // Validasi akun COA
         $paymentAccount = ChartOfAccount::findOrFail($validated['payment_account_id']);
         if ($paymentAccount->type !== 'asset') {
             return response()->json([
@@ -206,7 +205,6 @@ class PayablePaymentController extends Controller
             ], 422);
         }
 
-        // Fallback: cari berdasarkan category utang_lancar jika code berubah
         $payableAccount = ChartOfAccount::where('code', '2.1.01')
             ->where('type', 'liability')
             ->first()

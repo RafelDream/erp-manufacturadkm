@@ -50,7 +50,6 @@ class DeliveryOrderController extends Controller
             'status'        => 'required|in:draft,shipped',
             'expedition'    => 'nullable|string',
             'vehicle_number' => 'nullable|string',
-             'vehicle_number' => 'nullable|string',
             'items'         => 'required|array|min:1',
             'items.*.sales_order_item_id' => 'required|exists:sales_order_items,id',
             'items.*.product_id' => 'required|exists:products,id',

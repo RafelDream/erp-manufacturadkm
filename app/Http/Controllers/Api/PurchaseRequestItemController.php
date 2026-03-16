@@ -48,17 +48,17 @@ class PurchaseRequestItemController extends Controller
                     $rawMaterialId = $item['raw_material_id'] ?? null;
                     $productId = $item['product_id'] ?? null;
 
-                    // ✅ VALIDASI 1: Harus pilih salah satu
+                    // Harus pilih salah satu
                     if (!$rawMaterialId && !$productId) {
                         throw new \Exception('Item harus memilih raw material atau product');
                     }
 
-                    // ✅ VALIDASI 2: Tidak boleh keduanya terisi
+                    // Tidak boleh keduanya terisi
                     if ($rawMaterialId && $productId) {
                         throw new \Exception('Item tidak boleh memilih raw material dan product sekaligus');
                     }
 
-                    // ✅ VALIDASI 3: Type harus match
+                    // Type harus match
                     if ($pr->type === 'raw_materials' && !$rawMaterialId) {
                         throw new \Exception('PR type "raw_materials" harus menggunakan raw_material_id');
                     }

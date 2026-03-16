@@ -141,7 +141,7 @@ class StockMovementController extends Controller
             'name' => $raw->name,
             'code' => $raw->code,
             'type' => 'RawMaterial',
-            'unit' => $raw->unit, // Sesuai migration Anda (string)
+            'unit' => $raw->unit,
             'current_stock' => $in - $out,
             'is_active' => $raw->is_active
         ];
