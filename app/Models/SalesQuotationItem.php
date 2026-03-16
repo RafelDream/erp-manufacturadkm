@@ -17,7 +17,7 @@ class SalesQuotationItem extends Model
         'subtotal'
     ];
 
-    // 🔥 Casting agar aman untuk perhitungan
+    //  Casting agar aman untuk perhitungan
     protected $casts = [
         'qty'      => 'decimal:2',
         'price'    => 'decimal:2',
@@ -46,7 +46,7 @@ class SalesQuotationItem extends Model
     |--------------------------------------------------------------------------
     */
 
-    // 🔥 Optional: hitung otomatis jika tidak di-set
+    //  Optional: hitung otomatis jika tidak di-set
     public function calculateSubtotal()
     {
         return $this->qty * $this->price;

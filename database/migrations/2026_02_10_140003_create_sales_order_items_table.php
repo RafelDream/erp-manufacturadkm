@@ -25,13 +25,13 @@ return new class extends Migration
             $table->decimal('qty_pesanan', 15, 2); 
             $table->decimal('qty_shipped', 15, 2)->default(0);
 
-            // 🔥 Tambahan agar sinkron dengan quotation
+            //  Tambahan agar sinkron dengan quotation
             $table->decimal('price', 15, 2)->default(0);
             $table->decimal('subtotal', 18, 2)->default(0);
 
             $table->timestamps();
 
-            // 🔥 Index performa
+            //  Index performa
             $table->index(['sales_order_id']);
             $table->index(['product_id']);
         });

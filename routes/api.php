@@ -468,7 +468,7 @@ Route::prefix('v1')->group(function () {
         Route::get('sales-reports/by-product', [SalesReportController::class, 'productReport']);
         Route::get('sales-reports/by-customer', [SalesReportController::class, 'customerReport']);
         Route::get('sales-reports/monthly-trend', [SalesReportController::class, 'monthlyTrend']);
-        Route::get('sales-report/report-aging', [SalesReportController::class, 'agingReportPdf']);
+        Route::get('sales-report/report-aging/pdf', [SalesReportController::class, 'agingReportPdf']);
         Route::get('sales-reports/by-product/pdf', [SalesReportController::class, 'productReportPdf']);
         Route::get('sales-reports/by-customer/pdf', [SalesReportController::class, 'customerReportPdf']);
         Route::apiResource('sales-reports', SalesReportController::class);

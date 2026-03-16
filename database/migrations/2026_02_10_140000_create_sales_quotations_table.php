@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->text('notes')->nullable();
 
-            // 🔥 UPGRADE STATUS WORKFLOW
+            //  UPGRADE STATUS WORKFLOW
             $table->enum('status', [
                 'draft',
                 'sent',
@@ -34,7 +34,7 @@ return new class extends Migration
                 'converted'
             ])->default('draft');
 
-            // 🔥 APPROVAL SYSTEM
+            //  APPROVAL SYSTEM
             $table->foreignId('approved_by')
                 ->nullable()
                 ->constrained('users')

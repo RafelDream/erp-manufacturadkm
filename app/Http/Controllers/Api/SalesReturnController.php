@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{SalesReturn, Product, SalesInvoice};
+use App\Models\SalesReturn;
+use App\Models\Warehouse;
+use App\Models\SalesInvoice;
+use App\Models\Stock;
+use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -33,6 +37,7 @@ class SalesReturnController extends Controller
 
         return DB::transaction(function () use ($request) {
             $invoice = SalesInvoice::findOrFail($request->sales_invoice_id);
+            $warehouseId = $invoice->warehouse_id ?? Warehouse::first()->id;;
 
             $returnNo = 'RJ-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -5));
             
@@ -61,7 +66,20 @@ class SalesReturnController extends Controller
 
                 // Update Stok: Barang kembali ke gudang
                 if ($itemData['condition'] === 'good') {
-                    Product::find($itemData['product_id'])->increment('stock', $itemData['qty']);
+                    Stock::updateOrCreate(
+                        ['product_id' => $itemData['product_id'], 'warehouse_id' => $warehouseId],
+                        ['quantity' => DB::raw("quantity + " . $itemData['qty'])]
+                    );
+
+                    StockMovement::create([
+                        'product_id'   => $itemData['product_id'],
+                        'warehouse_id' => $warehouseId,
+                        'type'         => 'in',
+                        'quantity'     => $itemData['qty'],
+                        'reference_id' => $returnNo,
+                        'notes'        => 'Retur Penjualan (Good Condition) #' . $returnNo,
+                        'created_by'   => Auth::id() ?? 1,
+                    ]);
                 }
             }
 
@@ -75,7 +93,11 @@ class SalesReturnController extends Controller
                 ]);
             }
 
-            return response()->json(['success' => true, 'message' => 'Retur berhasil diproses. Stok hanya bertambah untuk kondisi "good".', 'data' => $return->load('items.product', 'invoice.customer')], 201);
+            return response()->json([
+                'success' => true, 
+                'message' => 'Retur berhasil diproses. Stok bertambah di tabel stocks untuk kondisi "good".', 
+                'data' => $return->load('items.product', 'invoice.customer')
+            ], 201);
         });
     }
 
@@ -92,11 +114,24 @@ class SalesReturnController extends Controller
         return DB::transaction(function () use ($id) {
             $return = SalesReturn::with('items')->findOrFail($id);
             $invoice = SalesInvoice::find($return->sales_invoice_id);
+            $warehouseId = $invoice->warehouse_id ?? Warehouse::first()->id;
 
             // Balikkan stok (karena retur dibatalkan/dihapus, stok ditarik lagi dari gudang)
             foreach ($return->items as $item) {
                 if ($item->condition === 'good') {
-                    Product::where('id', $item->product_id)->decrement('stock', $item->qty);
+                   Stock::where('product_id', $item->product_id)
+                        ->where('warehouse_id', $warehouseId)
+                        ->decrement('quantity', $item->qty);
+                    
+                    StockMovement::create([
+                        'product_id'   => $item->product_id,
+                        'warehouse_id' => $warehouseId,
+                        'type'         => 'out',
+                        'quantity'     => $item->qty,
+                        'reference_id' => $return->return_no,
+                        'notes'        => 'Pembatalan Retur (Hapus Data) #' . $return->return_no,
+                        'created_by'   => Auth::id() ?? 1,
+                    ]);
                 }
             }
 
@@ -119,11 +154,15 @@ class SalesReturnController extends Controller
             if ($return->trashed()) {
                 $return->restore();
                 $invoice = SalesInvoice::find($return->sales_invoice_id);
+                $warehouseId = $invoice->warehouse_id ?? Warehouse::first()->id;
 
                 // Kembalikan logika stok (Barang masuk lagi ke gudang)
                 foreach ($return->items as $item) {
                     if ($item->condition === 'good') {
-                        Product::where('id', $item->product_id)->increment('stock', $item->qty);
+                        Stock::updateOrCreate(
+                            ['product_id' => $item->product_id, 'warehouse_id' => $warehouseId],
+                            ['quantity' => DB::raw("quantity + " . $item->qty)]
+                        );
                     }       
                 }
                 

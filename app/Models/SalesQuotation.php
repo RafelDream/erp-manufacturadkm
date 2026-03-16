@@ -21,7 +21,7 @@ class SalesQuotation extends Model
         'created_by'
     ];
 
-    // 🔥 Casting biar aman secara tipe data
+    //  Casting biar aman secara tipe data
     protected $casts = [
         'tanggal'     => 'date',
         'dp_amount'   => 'decimal:2',
@@ -44,13 +44,13 @@ class SalesQuotation extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    // 🔥 Relasi ke SPK (hasil convert)
+    //  Relasi ke SPK (hasil convert)
     public function salesOrder()
     {
         return $this->hasOne(SalesOrder::class);
     }
 
-    // 🔥 User pembuat quotation
+    //  User pembuat quotation
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

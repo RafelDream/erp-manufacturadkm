@@ -403,7 +403,7 @@ class SalesInvoiceController extends Controller
         // Entry Cicilan dari tabel installments (Kredit)
         foreach ($inv->installments as $ins) {
             $ledger->push([
-                'date'        => $ins->payment_date->format('Y-m-d'),
+                'date'        => Carbon::parse($ins->payment_date)->format('Y-m-d'),
                 'description' => "Cicilan #{$ins->installment_number}: {$inv->no_invoice}",
                 'reference'   => $ins->receipt_no,
                 'type'        => 'CREDIT',

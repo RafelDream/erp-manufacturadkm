@@ -20,16 +20,16 @@ return new class extends Migration
 
             $table->foreignId('product_id')
                 ->constrained('products')
-                ->restrictOnDelete(); // 🔥 Jangan boleh hapus product kalau sudah dipakai
+                ->restrictOnDelete(); //  Jangan boleh hapus product kalau sudah dipakai
 
-            // 🔥 Gunakan decimal agar lebih presisi untuk uang
+            //  Gunakan decimal agar lebih presisi untuk uang
             $table->decimal('qty', 15, 2);
             $table->decimal('price', 15, 2);
             $table->decimal('subtotal', 18, 2);
 
             $table->timestamps();
 
-            // 🔥 Index untuk performa
+            //  Index untuk performa
             $table->index(['sales_quotation_id']);
             $table->index(['product_id']);
         });

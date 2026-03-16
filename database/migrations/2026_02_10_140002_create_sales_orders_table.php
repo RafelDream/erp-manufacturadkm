@@ -20,18 +20,18 @@ return new class extends Migration
             $table->foreignId('customer_id')
                 ->constrained('customers');
 
-            // 🔥 Tambahan: Jejak dari Quotation
+            //  Tambahan: Jejak dari Quotation
             $table->foreignId('sales_quotation_id')
                 ->nullable()
                 ->constrained('sales_quotations')
                 ->nullOnDelete();
 
-            // 🔥 Tambahan: Total harga (dibutuhkan di controller kamu)
+            //  Tambahan: Total harga (dibutuhkan di controller kamu)
             $table->decimal('total_price', 18, 2)->default(0);
 
             $table->text('notes')->nullable();
 
-            // 🔥 Sinkron dengan workflow convert
+            //  Sinkron dengan workflow convert
             $table->enum('status', [
                 'pending',     // Baru masuk, menunggu verifikasi
                 'approved',    // Sudah diverifikasi, siap dikirim (Ready to Ship)
