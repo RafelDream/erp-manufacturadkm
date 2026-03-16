@@ -11,11 +11,13 @@ class RawMaterialStockAdjustment extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'adjustment_no',
         'raw_material_id',
         'warehouse_id',
         'before_quantity',
         'after_quantity',
         'difference',
+        'type',
         'reason',
         'created_by',
     ];

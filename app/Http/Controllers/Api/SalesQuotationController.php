@@ -175,7 +175,7 @@ class SalesQuotationController extends Controller
         ], 404);
     }
 
-    // 🔥 Hanya accepted yang boleh convert
+    // Hanya accepted yang boleh convert
     if ($quotation->status !== 'approved') {
         return response()->json([
             'success' => false,
@@ -183,7 +183,7 @@ class SalesQuotationController extends Controller
         ], 400);
     }
 
-    // 🔥 Cegah double convert
+    //  Cegah double convert
     if ($quotation->salesOrder) {
         return response()->json([
             'success' => false,
@@ -198,7 +198,7 @@ class SalesQuotationController extends Controller
         $spk = SalesOrder::create([
             'no_spk'              => $noSpk,
             'customer_id'         => $quotation->customer_id,
-            'sales_quotation_id'  => $quotation->id, // 🔥 tracking asal
+            'sales_quotation_id'  => $quotation->id, //  tracking asal
             'tanggal'             => now(),
             'total_price'         => $quotation->total_price,
             'notes'               => 'Generated from Quotation: ' . $quotation->no_quotation,
@@ -209,13 +209,13 @@ class SalesQuotationController extends Controller
         foreach ($quotation->items as $item) {
             $spk->items()->create([
                 'product_id'   => $item->product_id,
-                'qty_pesanan'  => $item->qty, // 🔥 FIXED
+                'qty_pesanan'  => $item->qty, //  FIXED
                 'price'        => $item->price,
                 'subtotal'     => $item->subtotal,
             ]);
         }
 
-        // 🔥 Optional: ubah jadi converted agar lebih jelas
+        //  Optional: ubah jadi converted agar lebih jelas
         $quotation->update([
             'status' => 'approved'
         ]);

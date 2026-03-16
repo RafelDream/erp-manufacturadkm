@@ -212,7 +212,7 @@ class SalesInvoiceController extends Controller
 
         return DB::transaction(function () use ($invoice) {
             $invoice->update([
-                'amount_paid' => $invoice->total_price,
+                'amount_paid' => $invoice->final_amount,
                 'balance_due' => 0,
                 'status'      => 'paid',
                 'notes'       => 'Pelunasan lunas (Full Payment)',

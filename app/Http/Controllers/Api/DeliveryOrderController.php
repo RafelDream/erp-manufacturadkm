@@ -256,13 +256,14 @@ class DeliveryOrderController extends Controller
      */
     public function restore($id)
     {
-        $do = DeliveryOrder::onlyTrashed()->with('items')->find($id);
+        
+        return DB::transaction(function () use ($id) {
+        $do = DeliveryOrder::onlyTrashed()->with(['items', 'salesOrder'])->find($id);
 
         if (!$do) {
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan di sampah'], 404);
         }
 
-        return DB::transaction(function () use ($do) {
             $do->restore();
 
             if ($do->status === 'shipped') {
@@ -276,17 +277,17 @@ class DeliveryOrderController extends Controller
                 $this->executeShipping($do);
             }
 
-            $do->restore();
-
             if ($do->salesOrder) {
                 $do->salesOrder->load('items');
                 $do->salesOrder->syncStatus();
             }
 
+            $do->load('items.product');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Data Surat Jalan Berhasil Dikembalikan',
-                'data' => $do('items.product'),
+                'data' => $do,
             ]);
         });
     }

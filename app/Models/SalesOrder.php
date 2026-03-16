@@ -26,6 +26,9 @@ class SalesOrder extends Model
         'total_price' => 'decimal:2',
     ];
 
+    // Menambahkan delivery_progress ke output JSON secara otomatis
+    protected $appends = ['delivery_progress'];
+
     /*
     |--------------------------------------------------------------------------
     | RELATIONSHIPS
@@ -55,7 +58,7 @@ class SalesOrder extends Model
 
     public function deliveryOrders()
     {
-        // Relasi ke Surat Jalan melalui kolom no_spk
+        // Relasi ke Delivery Order melalui sales_order_id
         return $this->hasMany(DeliveryOrder::class, 'sales_order_id');
     }
 
@@ -67,20 +70,30 @@ class SalesOrder extends Model
 
    public function getDeliveryProgressAttribute()
     {
-        $totalOrdered = $this->items->sum('qty_pesanan');
-        $totalShipped = $this->items->sum('qty_shipped');
-        
-        if ($totalOrdered <= 0) return 0;
-        
+        if ($this->relationLoaded('items')) {
+        $items = $this->items;
+        } else {
+        $items = $this->items()->get();
+        }
+
+        $totalOrdered = (float) $items->sum('qty_pesanan');
+        $totalShipped = (float) $items->sum('qty_shipped');
+
+        if ($totalOrdered <= 0) {
+        return 0;
+        }
+
         return round(($totalShipped / $totalOrdered) * 100, 2);
-    }
+        }
 
     // Memastikan status sinkron dengan realita pengiriman di gudang
     public function syncStatus()
     {
-        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
-        $totalOrdered = $this->items->sum('qty_pesanan');
-        $totalShipped = $this->items->sum('qty_shipped');
+        $items = $this->items()->get();
+
+        if ($items->isEmpty()) return;
+
+        $totalShipped = $items->sum('qty_shipped');
 
         $allItemsFulfilled = $items->every(
             fn($item) => (float) $item->qty_shipped >= (float) $item->qty_pesanan
@@ -89,7 +102,7 @@ class SalesOrder extends Model
 
         // Jika belum ada pengiriman sama sekali, jangan ubah status (tetap pending/approved)
         if ($totalShipped <= 0) {
-             $newStatus = 'approved';
+             $newStatus = $this->status === 'approved' ? 'approved' : 'pending';
         } elseif ($allItemsFulfilled) {
             // Semua item di semua baris sudah terpenuhi → selesai
             $newStatus = 'completed';
@@ -110,7 +123,4 @@ class SalesOrder extends Model
     public function isApproved() { return $this->status === 'approved'; }
     public function isPartial() { return $this->status === 'partial'; }
     public function isCompleted() { return $this->status === 'completed'; }
-
-    // Menambahkan delivery_progress ke output JSON secara otomatis
-    protected $appends = ['delivery_progress'];
 }

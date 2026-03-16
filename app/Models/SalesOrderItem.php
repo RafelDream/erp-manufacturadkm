@@ -20,9 +20,10 @@ class SalesOrderItem extends Model
         'subtotal' 
     ];
 
-    // 🔥 Casting agar aman untuk perhitungan
+    //  Casting agar aman untuk perhitungan
     protected $casts = [
-        'qty_pesanan' => 'decimal:2',
+        'qty_pesanan' => 'float',
+        'qty_shipped' => 'float',
         'price'       => 'decimal:2',
         'subtotal'    => 'decimal:2',
     ];
@@ -53,10 +54,13 @@ class SalesOrderItem extends Model
 
     public function calculateSubtotal()
     {
-        return $this->qty_pesanan * $this->price;
+        return (float) $this->qty_pesanan * (float) $this->price;
     }
 
-    public function getQtyRemainingAttribute() {
-    return max(0, $this->qty_pesanan - $this->qty_shipped);
+    public function getQtyRemainingAttribute() 
+    {
+        $remaining = $this->qty_pesanan - $this->qty_shipped;
+
+        return max(0, $remaining);
     }
 }

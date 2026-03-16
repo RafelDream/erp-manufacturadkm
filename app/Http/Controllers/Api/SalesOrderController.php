@@ -218,13 +218,15 @@ class SalesOrderController extends Controller
     
         public function getOutstandingItems($id)
         {
-        $order = SalesOrder::with(['items.product'])->find($id);
+        $order = SalesOrder::with(['items.product', 'customer'])->find($id);
 
             if (!$order) {
             return response()->json(['message' => 'SPK tidak ditemukan'], 404);
         }
 
     $items = $order->items->map(function ($item) {
+
+        $qtySisa = $item->qty_pesanan - $item->qty_shipped;
         return [
             'sales_order_item_id' => $item->id,
             'product_id'   => $item->product_id,
@@ -232,6 +234,7 @@ class SalesOrderController extends Controller
             'qty_pesanan'  => (float) $item->qty_pesanan,
             'qty_terkirim' => (float) $item->qty_shipped,
             'qty_sisa'     => (float) $item->qty_remaining,
+
         ];
 
         })->filter(fn($item) => $item['qty_sisa'] > 0)->values();

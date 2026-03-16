@@ -39,7 +39,10 @@ class RawMaterialStockAdjustmentController extends Controller
             $after  = $validated['after_quantity'];
             $diff   = $after - $before;
 
+            $adjustment_no = 'ADJ-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+
             $adjustment = RawMaterialStockAdjustment::create([
+                'adjustment_no'   => $adjustment_no,
                 'raw_material_id' => $validated['raw_material_id'],
                 'warehouse_id'    => $validated['warehouse_id'],
                 'before_quantity' => $before,
@@ -76,19 +79,23 @@ class RawMaterialStockAdjustmentController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-        'quantity' => 'required|numeric|min:0',
-        'notes'    => 'nullable|string',
+        'after_quantity' => 'required|numeric|min:0',
+        'reason'    => 'nullable|string',
         ]);
 
         $adjustment = RawMaterialStockAdjustment::findOrFail($id);
 
+        $newDifference = $validated['after_quantity'] - $adjustment->before_quantity;
+
         // update data adjustment
         $adjustment->update([
-        'quantity' => $validated['quantity'],
-        'notes'    => $validated['notes'] ?? $adjustment->notes,
+        'after_quantity' => $validated['after_quantity'],
+        'difference'     => $newDifference,
+        'reason'    => $validated['reason'] ?? $adjustment->reason,
         ]);
 
         return response()->json([
+        'success' => true,
         'message' => 'Raw Material Stock Adjustment berhasil diperbarui',
         'data'    => $adjustment
         ]);
@@ -96,10 +103,8 @@ class RawMaterialStockAdjustmentController extends Controller
 
     public function destroy($id)
     {
-        RawMaterialStockAdjustment::findOrFail($id)->delete();
-
             return DB::transaction(function () use ($id) {
-            $adjustment = RawMaterialStockAdjustment::findOrFail($id);
+            $adjustment = RawMaterialStockAdjustment::withTrashed()->findOrFail($id);
         
             // KOREKSI STOK BALIK: Kembalikan quantity ke 'before_quantity'
             $stock = RawMaterialStock::where([
@@ -118,7 +123,7 @@ class RawMaterialStockAdjustmentController extends Controller
 
             $adjustment->delete();
 
-            return response()->json(['message' => 'Adjustment dibatalkan dan stok dikembalikan ke awal']);
+            return response()->json(['success' => true, 'message' => 'Adjustment dibatalkan dan stok dikembalikan ke awal']);
         });
     }
 
